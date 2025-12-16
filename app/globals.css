@@ -14,7 +14,7 @@
   }
 
   * {
-    @apply border-border;
+    border-color: var(--background-elevated);
   }
 
   body {

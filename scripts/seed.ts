@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { db, query } from '../lib/db'
 
 // Helper to generate CUID-like IDs

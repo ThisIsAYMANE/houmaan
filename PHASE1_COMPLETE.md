@@ -64,9 +64,10 @@ Phase 1 has been successfully completed! The project foundation is now in place 
   - `notifications` table
 
 ### 1.4 Database Migrations ✅
-- ✅ Prisma ORM set up
-- ✅ Schema file created (`prisma/schema.prisma`)
-- ✅ Seed script created (`prisma/seed.ts`)
+- ✅ PostgreSQL client set up (using `pg` library)
+- ✅ SQL migration files created (`sql/migrations/001_initial_schema.sql`)
+- ✅ Migration runner script created (`scripts/migrate.ts`)
+- ✅ Seed script created (`scripts/seed.ts`)
 
 ### 1.5 Design System Implementation ✅
 - ✅ Tailwind CSS configured
@@ -95,13 +96,16 @@ bc.game-houman/
 │   └── globals.css         ✅ Global styles
 ├── components/             ✅ Directory created
 ├── lib/
-│   ├── db.ts              ✅ Prisma client
+│   ├── db.ts              ✅ PostgreSQL client (pg Pool)
 │   ├── utils.ts           ✅ Helper functions
 │   ├── errors.ts          ✅ Error classes
 │   ├── api-response.ts    ✅ API helpers
 │   └── validation.ts      ✅ Zod schemas
-├── prisma/
-│   ├── schema.prisma      ✅ Database schema
+├── sql/
+│   └── migrations/         ✅ SQL migration files
+│       └── 001_initial_schema.sql
+├── scripts/
+│   ├── migrate.ts          ✅ Migration runner
 │   └── seed.ts            ✅ Seed script
 ├── types/
 │   └── index.ts           ✅ TypeScript types
@@ -174,8 +178,7 @@ To get started:
 
 4. **Set up database:**
    ```bash
-   npm run db:generate
-   npm run db:push
+   npm run db:migrate
    npm run db:seed
    ```
 
@@ -188,7 +191,7 @@ To get started:
 
 ## 📝 Technical Decisions Made
 
-- **ORM**: Prisma (chosen for excellent Next.js integration)
+- **Database**: PostgreSQL with direct SQL queries (using `pg` library)
 - **Styling**: Tailwind CSS (utility-first, matches design system)
 - **Validation**: Zod (type-safe schema validation)
 - **Icons**: Lucide React (modern, consistent icon set)
@@ -199,7 +202,8 @@ To get started:
 ## ✨ Features Ready
 
 - ✅ Database schema with all required tables
-- ✅ Prisma Client for type-safe database access
+- ✅ PostgreSQL client (pg Pool) for database access
+- ✅ SQL migration system
 - ✅ Error handling system
 - ✅ API response helpers
 - ✅ Validation schemas

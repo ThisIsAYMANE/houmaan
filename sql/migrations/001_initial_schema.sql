@@ -1,5 +1,5 @@
 -- BC.GAME Database Schema
--- Generated from Prisma schema
+-- Initial schema migration
 
 -- Enable UUID extension for generating IDs (using cuid-like strings)
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

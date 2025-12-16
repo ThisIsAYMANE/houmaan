@@ -76,9 +76,9 @@ This document outlines a phased approach to building the BC.GAME platform based 
   - `notifications` table (user_id, type, message, read, created_at)
 
 #### 1.4 Database Migrations
-- [ ] Set up migration system (Prisma/Drizzle/TypeORM)
-- [ ] Create initial migration files
-- [ ] Seed data scripts (games, categories, providers, etc.)
+- [x] Set up migration system (PostgreSQL with direct SQL)
+- [x] Create initial migration files
+- [x] Seed data scripts (games, categories, providers, etc.)
 
 #### 1.5 Design System Implementation
 - [ ] Create Tailwind CSS configuration
@@ -96,12 +96,12 @@ This document outlines a phased approach to building the BC.GAME platform based 
 - [ ] Validation schemas (Zod)
 
 ### Database Schema Files
-- `schema.sql` or Prisma schema
-- Migration files
-- Seed data files
+- `sql/migrations/001_initial_schema.sql` - SQL migration files
+- `scripts/migrate.ts` - Migration runner
+- `scripts/seed.ts` - Seed data script
 
 ### Technical Decisions
-- **ORM/Query Builder**: Choose Prisma, Drizzle, or TypeORM
+- **Database**: PostgreSQL with direct SQL queries (using `pg` library)
 - **Authentication**: NextAuth.js or custom JWT
 - **State Management**: Zustand/Redux for client state
 - **Form Handling**: React Hook Form + Zod
@@ -1111,7 +1111,7 @@ notifications
 ### Backend
 - **API**: Next.js API Routes or tRPC
 - **Database**: PostgreSQL
-- **ORM**: Prisma or Drizzle
+- **Database**: PostgreSQL with direct SQL queries (using `pg` library)
 - **Authentication**: NextAuth.js or custom JWT
 - **Validation**: Zod
 - **Caching**: Redis
