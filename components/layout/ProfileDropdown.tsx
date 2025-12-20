@@ -60,96 +60,79 @@ export default function ProfileDropdown() {
 
   return (
     <>
-      <div className="relative" ref={dropdownRef}>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 p-2 hover:bg-background-elevated rounded-md transition-colors"
-        >
-          <div className="w-8 h-8 bg-accent-primary rounded-full flex items-center justify-center overflow-hidden">
-            {user?.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.username || user.email}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <User className="w-4 h-4 text-background-primary" />
-            )}
-          </div>
-          <ChevronDown className="w-4 h-4 text-text-secondary" />
-        </button>
+      {isAuthenticated ? (
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center gap-2 p-2 hover:bg-background-elevated rounded-md transition-colors"
+          >
+            <div className="w-8 h-8 bg-accent-primary rounded-full flex items-center justify-center overflow-hidden">
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.username || user.email}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-4 h-4 text-background-primary" />
+              )}
+            </div>
+            <ChevronDown className="w-4 h-4 text-text-secondary" />
+          </button>
 
-        {isOpen && (
-          <div className="absolute right-0 mt-2 w-48 bg-background-elevated border border-background-secondary rounded-md shadow-lg py-1 z-50">
-            {isAuthenticated ? (
-              <>
-                <button
-                  onClick={handleProfileClick}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors text-left"
-                >
-                  <UserCircle className="w-4 h-4" />
-                  <span>Mon profil</span>
-                </button>
-                <Link
-                  href="/wallet"
-                  className="flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <Wallet className="w-4 h-4" />
-                  <span>Portefeuille</span>
-                </Link>
-                <div className="border-t border-background-secondary my-1"></div>
-                <Link
-                  href="/settings"
-                  className="flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <Settings className="w-4 h-4" />
-                  <span>Paramètres</span>
-                </Link>
-                <div className="border-t border-background-secondary my-1"></div>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors text-left"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Déconnexion</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => {
-                    setShowLoginModal(true)
-                    setIsOpen(false)
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors text-left"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>Connexion</span>
-                </button>
-                <Link
-                  href="/register"
-                  className="flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <UserCircle className="w-4 h-4" />
-                  <span>Inscription</span>
-                </Link>
-                <div className="border-t border-background-secondary my-1"></div>
-                <Link
-                  href="/settings"
-                  className="flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <Settings className="w-4 h-4" />
-                  <span>Paramètres</span>
-                </Link>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+          {isOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-background-elevated border border-background-secondary rounded-md shadow-lg py-1 z-50">
+              <button
+                onClick={handleProfileClick}
+                className="w-full flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors text-left"
+              >
+                <UserCircle className="w-4 h-4" />
+                <span>Mon profil</span>
+              </button>
+              <Link
+                href="/wallet"
+                className="flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                <Wallet className="w-4 h-4" />
+                <span>Portefeuille</span>
+              </Link>
+              <div className="border-t border-background-secondary my-1"></div>
+              <Link
+                href="/settings"
+                className="flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                <Settings className="w-4 h-4" />
+                <span>Paramètres</span>
+              </Link>
+              <div className="border-t border-background-secondary my-1"></div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors text-left"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Déconnexion</span>
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowLoginModal(true)}
+            className="px-4 py-2 bg-bg-secondary border border-border-primary rounded-lg text-white font-semibold hover:bg-bg-tertiary transition-colors"
+          >
+            Se connecter
+          </button>
+          <Link
+            href="/register"
+            className="px-4 py-2 bg-green-500 rounded-lg text-black font-semibold hover:bg-green-600 transition-colors"
+          >
+            S'inscrire
+          </Link>
+        </div>
+      )}
 
       <LoginModal
         isOpen={showLoginModal}

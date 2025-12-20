@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -23,7 +23,6 @@ import {
   Sparkles,
   Sliders,
   Tv,
-  Cards,
   Gamepad2,
   Target,
 } from 'lucide-react'
@@ -61,7 +60,7 @@ const navigation: NavSection[] = [
         items: [
           { label: 'Favoris', href: '/casino/favorites' },
           { label: 'Récent', href: '/casino/recent' },
-          { label: 'BC Originaux', href: '/casino/bc-originaux' },
+          { label: 'boz Originaux', href: '/casino/boz-originaux' },
           { label: 'BC Exclusif', href: '/casino/bc-exclusif' },
           { label: 'Jeux populaires', href: '/casino/popular' },
           { label: 'Machines à sous', href: '/casino/slots' },
@@ -120,6 +119,17 @@ export default function Sidebar({ isOpen, isCollapsed = false, onClose }: Sideba
   const pathname = usePathname()
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set([0]))
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  
+  // Auto-expand items if current path matches
+  useEffect(() => {
+    navigation.forEach((section) => {
+      section.items.forEach((item) => {
+        if (item.items && (pathname === item.href || pathname.startsWith(item.href + '/'))) {
+          setExpandedItems(prev => new Set(prev).add(item.href))
+        }
+      })
+    })
+  }, [pathname])
 
   const toggleSection = (index: number) => {
     const newExpanded = new Set(expandedSections)
@@ -162,6 +172,7 @@ export default function Sidebar({ isOpen, isCollapsed = false, onClose }: Sideba
         style={{
           width: isCollapsed ? '5rem' : '16rem', // 80px : 256px
           willChange: 'width',
+          transition: 'width 0.3s ease-in-out, transform 0.3s ease-in-out',
         }}
       >
         <div className="flex flex-col h-full overflow-hidden">
@@ -217,42 +228,62 @@ export default function Sidebar({ isOpen, isCollapsed = false, onClose }: Sideba
                         <div key={item.href}>
                           <div className="flex items-center">
                             {hasSubItems ? (
-                              <button
-                                onClick={() => toggleItem(item.href)}
-                                className={`
-                                  flex-1 flex items-center gap-3 px-4 py-2.5 mx-2 rounded-md transition-all duration-300
-                                  ${isCollapsed ? 'justify-center px-2' : ''}
-                                  ${
-                                    isActive
-                                      ? 'bg-accent-primary text-background-primary'
-                                      : 'text-text-secondary hover:bg-background-elevated hover:text-text-primary'
-                                  }
-                                `}
-                                title={isCollapsed ? item.label : undefined}
-                              >
-                                {Icon && <Icon className="w-5 h-5 flex-shrink-0" />}
-                                <span 
-                                  className={`flex-1 text-left transition-all duration-300 overflow-hidden whitespace-nowrap ${
-                                    isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'
-                                  }`}
+                              <div className="flex-1 flex items-center gap-1">
+                                <Link
+                                  href={item.href}
+                                  onClick={onClose}
+                                  className={`
+                                    flex-1 flex items-center gap-3 px-4 py-2.5 mx-2 rounded-md transition-all duration-300
+                                    ${isCollapsed ? 'justify-center px-2' : ''}
+                                    ${
+                                      isActive
+                                        ? 'bg-accent-primary text-background-primary'
+                                        : 'text-text-secondary hover:bg-background-elevated hover:text-text-primary'
+                                    }
+                                  `}
+                                  title={isCollapsed ? item.label : undefined}
                                 >
-                                  {item.label}
-                                </span>
-                                {item.badge && (
+                                  {Icon && <Icon className="w-5 h-5 flex-shrink-0" />}
                                   <span 
-                                    className={`px-2 py-0.5 bg-accent-primary text-background-primary text-xs font-semibold rounded transition-all duration-300 overflow-hidden whitespace-nowrap ${
-                                      isCollapsed ? 'opacity-0 w-0 p-0' : 'opacity-100 w-auto'
+                                    className={`flex-1 text-left transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                      isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'
                                     }`}
                                   >
-                                    {item.badge}
+                                    {item.label}
                                   </span>
-                                )}
-                                <ChevronRight
-                                  className={`w-4 h-4 transition-all duration-300 flex-shrink-0 ${
-                                    isExpanded ? 'rotate-90' : ''
-                                  } ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}
-                                />
-                              </button>
+                                  {item.badge && (
+                                    <span 
+                                      className={`px-2 py-0.5 bg-accent-primary text-background-primary text-xs font-semibold rounded transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                        isCollapsed ? 'opacity-0 w-0 p-0' : 'opacity-100 w-auto'
+                                      }`}
+                                    >
+                                      {item.badge}
+                                    </span>
+                                  )}
+                                </Link>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleItem(item.href)
+                                  }}
+                                  className={`
+                                    p-2 mx-1 rounded-md transition-all duration-300
+                                    ${
+                                      isActive
+                                        ? 'text-background-primary hover:bg-background-primary/20'
+                                        : 'text-text-secondary hover:bg-background-elevated hover:text-text-primary'
+                                    }
+                                    ${isCollapsed ? 'opacity-0 w-0 p-0 m-0' : 'opacity-100 w-auto'}
+                                  `}
+                                  title="Expand/Collapse"
+                                >
+                                  <ChevronRight
+                                    className={`w-4 h-4 transition-all duration-300 flex-shrink-0 ${
+                                      isExpanded ? 'rotate-90' : ''
+                                    }`}
+                                  />
+                                </button>
+                              </div>
                             ) : (
                               <Link
                                 href={item.href}

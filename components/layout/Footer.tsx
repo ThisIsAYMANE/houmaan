@@ -6,7 +6,7 @@ import { Facebook, Twitter, Instagram, Youtube, Send } from 'lucide-react'
 const footerLinks = {
   casino: [
     { label: 'Lobby', href: '/casino' },
-    { label: 'BC Originaux', href: '/casino/bc-originaux' },
+    { label: 'boz Originaux', href: '/casino/boz-originaux' },
     { label: 'BC Exclusif', href: '/casino/bc-exclusif' },
     { label: 'Jeux populaires', href: '/casino/popular' },
     { label: 'Machines à sous', href: '/casino/slots' },
@@ -162,7 +162,7 @@ export default function Footer() {
 
             {/* Copyright */}
             <div className="text-text-secondary text-sm text-center md:text-right">
-              <p>© 2025 BC.GAME. Tous droits réservés.</p>
+              <p>© 2025 boz.Topol. Tous droits réservés.</p>
               <p className="mt-1">Jeu responsable - 18+</p>
             </div>
           </div>

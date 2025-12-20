@@ -26,7 +26,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             
             <Link href="/" className="flex items-center">
               <span className="text-2xl font-bold text-accent-primary">
-                BC.GAME
+                boz.Topol
               </span>
             </Link>
           </div>
@@ -77,6 +77,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     </header>
   )
 }
+
 
 
 

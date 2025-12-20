@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Header from './Header'
 import Sidebar from './Sidebar'
 import Footer from './Footer'
+import AdBanner from './AdBanner'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -46,16 +47,19 @@ export default function MainLayout({ children }: MainLayoutProps) {
         />
         
         <div 
-          className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] transition-all duration-300 ease-in-out overflow-x-hidden min-w-0"
+          className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] overflow-x-hidden min-w-0"
           style={{
-            marginLeft: sidebarOpen 
-              ? sidebarCollapsed 
-                ? '5rem' // 80px (w-20)
-                : '16rem' // 256px (w-64)
-              : '0',
+            marginLeft: isMobile
+              ? '0'
+              : (sidebarCollapsed ? '5rem' : '16rem'), // 80px : 256px
+            transition: 'margin-left 0.3s ease-in-out',
+            width: isMobile 
+              ? '100%' 
+              : `calc(100% - ${sidebarCollapsed ? '5rem' : '16rem'})`,
           }}
         >
-          <main className="flex-1 w-full max-w-full overflow-x-hidden min-w-0">
+          <main className="flex-1 w-full max-w-full overflow-x-hidden min-w-0 px-6 py-6">
+            <AdBanner />
             {children}
           </main>
           <Footer />

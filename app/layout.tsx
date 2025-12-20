@@ -7,8 +7,13 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
-  title: 'BC.GAME - Casino & Sports Betting',
-  description: 'BC.GAME - Your premier destination for casino games and sports betting',
+  title: 'boz.Topol - Casino & Sports Betting',
+  description: 'boz.Topol - Your premier destination for casino games and sports betting',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({

@@ -61,7 +61,7 @@ export default function Home() {
       title: 'LIMBO',
       slug: 'limbo',
       thumbnail_url: '',
-      provider_name: 'BC.GAME Originals',
+      provider_name: 'boz.Topol Originals',
       provider_logo: '',
       player_count: 358,
       multiplier: 500,
@@ -73,7 +73,7 @@ export default function Home() {
       title: 'CRASH TRENBALL',
       slug: 'crash-trenball',
       thumbnail_url: '',
-      provider_name: 'BC.GAME Originals',
+      provider_name: 'boz.Topol Originals',
       provider_logo: '',
       player_count: 2363,
       multiplier: 999,
@@ -85,7 +85,7 @@ export default function Home() {
       title: 'PLINKO',
       slug: 'plinko',
       thumbnail_url: '',
-      provider_name: 'BC.GAME Originals',
+      provider_name: 'boz.Topol Originals',
       provider_logo: '',
       player_count: 148,
       multiplier: 420,
@@ -221,7 +221,7 @@ export default function Home() {
     },
     {
       id: '4',
-      game_title: 'BC.GAME Auto Mega Roul...',
+      game_title: 'boz.Topol Auto Mega Roul...',
       player_username: 'Hldfdbtqlpyb',
       bet_amount: 10.22,
       currency: 'MAD',
@@ -316,7 +316,7 @@ export default function Home() {
       const loadedPopular = popularData.games || []
       setPopularGames(loadedPopular.length > 0 ? loadedPopular : getMockGames())
 
-      // Load BC Originaux games - use mock data if empty
+      // Load boz Originaux games - use mock data if empty
       const bcOriginauxRes = await fetch('/api/games?category=bc-originaux&limit=10')
       const bcOriginauxData = await bcOriginauxRes.json()
       const loadedBcOriginaux = bcOriginauxData.games || []
@@ -358,7 +358,7 @@ export default function Home() {
         {
           id: '3',
           title: 'ANNIVERSAIRE 2025',
-          description: 'C\'EST LA FÊTE CHEZ BC.GAME!',
+          description: 'C\'EST LA FÊTE CHEZ boz.Topol!',
           image_url: '',
           link_url: '/promotions',
           button_text: 'OUER MAINTENANT',
@@ -399,7 +399,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full">
         <div className="text-center">
           <p className="text-text-secondary">Chargement...</p>
         </div>
@@ -408,7 +408,7 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 w-full max-w-full overflow-x-hidden">
+    <div className="w-full max-w-full overflow-x-hidden">
       {/* Banner Carousel */}
       {banners.length > 0 && (
         <BannerCarousel banners={banners} autoPlay={true} />
@@ -441,12 +441,12 @@ export default function Home() {
           />
         )}
 
-        {/* BC Originaux */}
+        {/* boz Originaux */}
         {bcOriginauxGames.length > 0 && (
           <GameCarousel
-            title="BC Originaux"
+            title="boz Originaux"
             games={bcOriginauxGames}
-            viewAllHref="/games?category=bc-originaux"
+            viewAllHref="/games?category=boz-originaux"
             onGameClick={handleGameClick}
           />
         )}

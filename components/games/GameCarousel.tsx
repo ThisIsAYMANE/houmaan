@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, Children } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import GameCard from './GameCard'
 import Link from 'next/link'
@@ -20,11 +20,12 @@ interface Game {
 }
 
 interface GameCarouselProps {
-  title: string
-  games: Game[]
+  title?: string
+  games?: Game[]
   viewAllHref?: string
   onGameClick?: (game: Game) => void
   autoScroll?: boolean
+  children?: React.ReactNode
 }
 
 export default function GameCarousel({
@@ -32,7 +33,8 @@ export default function GameCarousel({
   games,
   viewAllHref,
   onGameClick,
-  autoScroll = false
+  autoScroll = false,
+  children
 }: GameCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -65,15 +67,20 @@ export default function GameCarousel({
     setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10)
   }
 
-  // Duplicate games for infinite scroll
-  const duplicatedGames = autoScroll ? [...games, ...games, ...games] : games
+  // Support both games prop and children
+  const gamesArray = games || []
+  const hasChildren = !!children
+  const gamesCount = hasChildren ? Children.count(children) : gamesArray.length
+
+  // Duplicate games for infinite scroll (only if using games prop)
+  const duplicatedGames = autoScroll && !hasChildren ? [...gamesArray, ...gamesArray, ...gamesArray] : gamesArray
 
   // Initialize scroll position for infinite scroll
   useEffect(() => {
-    if (!autoScroll || !scrollRef.current || games.length === 0) return
+    if (!autoScroll || !scrollRef.current || gamesCount === 0) return
 
     const cardWidth = 196 // 180px card + 16px gap
-    const firstSetWidth = games.length * cardWidth
+    const firstSetWidth = gamesCount * cardWidth
     
     // Set initial position to the middle set (second set of games) after a short delay
     setTimeout(() => {
@@ -81,18 +88,18 @@ export default function GameCarousel({
         scrollRef.current.scrollLeft = firstSetWidth
       }
     }, 100)
-  }, [autoScroll, games.length])
+  }, [autoScroll, gamesCount])
 
   // Handle scroll to create seamless loop
   const handleScroll = () => {
     updateScrollButtons()
     
-    if (!autoScroll || !scrollRef.current || games.length === 0) {
+    if (!autoScroll || !scrollRef.current || gamesCount === 0) {
       return
     }
 
     const cardWidth = 196 // 180px card + 16px gap
-    const singleSetWidth = games.length * cardWidth
+    const singleSetWidth = gamesCount * cardWidth
     const { scrollLeft } = scrollRef.current
 
     // If we've scrolled past the end of the second set, instantly jump back to the start of the second set
@@ -106,8 +113,9 @@ export default function GameCarousel({
   }
 
   // Auto-scroll functionality - continuous smooth scrolling
+  // Note: Auto-scroll only works with games prop, not with children
   useEffect(() => {
-    if (!autoScroll || games.length === 0) return
+    if (!autoScroll || gamesCount === 0 || hasChildren) return
 
     let animationFrameId: number | null = null
     let lastTimestamp = 0
@@ -136,7 +144,7 @@ export default function GameCarousel({
       lastTimestamp = timestamp
 
       const cardWidth = 196 // 180px card + 16px gap
-      const singleSetWidth = games.length * cardWidth
+      const singleSetWidth = gamesCount * cardWidth
       const scrollAmount = scrollSpeed * deltaTime
 
       // Scroll continuously
@@ -158,7 +166,7 @@ export default function GameCarousel({
       if (scrollRef.current) {
         // Ensure we start at the middle set
         const cardWidth = 196
-        const firstSetWidth = games.length * cardWidth
+        const firstSetWidth = gamesCount * cardWidth
         if (scrollRef.current.scrollLeft < firstSetWidth) {
           scrollRef.current.scrollLeft = firstSetWidth
         }
@@ -173,46 +181,54 @@ export default function GameCarousel({
         cancelAnimationFrame(animationFrameId)
       }
     }
-  }, [autoScroll, isHovered, games.length])
+  }, [autoScroll, isHovered, gamesCount])
 
-  if (games.length === 0) {
+  // If using children and no children provided, return null
+  if (hasChildren && !children) {
+    return null
+  }
+
+  // If using games prop and no games, return null
+  if (!hasChildren && gamesArray.length === 0) {
     return null
   }
 
   return (
     <div className="mb-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-text-primary">{title}</h2>
-        <div className="flex items-center gap-4">
-          {viewAllHref && (
-            <Link
-              href={viewAllHref}
-              className="text-accent-primary hover:text-accent-secondary text-sm font-semibold transition-colors"
-            >
-              Tous
-            </Link>
-          )}
-          <div className="flex gap-2">
-            <button
-              onClick={() => scroll('left')}
-              disabled={!canScrollLeft}
-              className="p-2 rounded-lg bg-bg-secondary hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="w-5 h-5 text-text-primary" />
-            </button>
-            <button
-              onClick={() => scroll('right')}
-              disabled={!canScrollRight}
-              className="p-2 rounded-lg bg-bg-secondary hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="w-5 h-5 text-text-primary" />
-            </button>
+      {/* Header - only show if title is provided */}
+      {title && (
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-text-primary">{title}</h2>
+          <div className="flex items-center gap-4">
+            {viewAllHref && (
+              <Link
+                href={viewAllHref}
+                className="text-accent-primary hover:text-accent-secondary text-sm font-semibold transition-colors"
+              >
+                Tous
+              </Link>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => scroll('left')}
+                disabled={!canScrollLeft}
+                className="p-2 rounded-lg bg-bg-secondary hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="w-5 h-5 text-text-primary" />
+              </button>
+              <button
+                onClick={() => scroll('right')}
+                disabled={!canScrollRight}
+                className="p-2 rounded-lg bg-bg-secondary hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="w-5 h-5 text-text-primary" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Carousel - horizontal scrollable */}
       <div
@@ -233,22 +249,28 @@ export default function GameCarousel({
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        {duplicatedGames.map((game, index) => (
-          <GameCard
-            key={`${game.id}-${index}`}
-            id={game.id}
-            title={game.title}
-            thumbnailUrl={game.thumbnail_url}
-            providerName={game.provider_name}
-            providerLogo={game.provider_logo}
-            playerCount={game.player_count}
-            multiplier={game.multiplier}
-            isNew={game.is_new}
-            isExclusive={game.is_exclusive}
-            isOriginal={game.is_original}
-            onClick={() => onGameClick?.(game)}
-          />
-        ))}
+        {hasChildren ? (
+          // Render children if provided
+          children
+        ) : (
+          // Render games from prop
+          duplicatedGames.map((game, index) => (
+            <GameCard
+              key={`${game.id}-${index}`}
+              id={game.id}
+              title={game.title}
+              thumbnailUrl={game.thumbnail_url}
+              providerName={game.provider_name}
+              providerLogo={game.provider_logo}
+              playerCount={game.player_count}
+              multiplier={game.multiplier}
+              isNew={game.is_new}
+              isExclusive={game.is_exclusive}
+              isOriginal={game.is_original}
+              onClick={() => onGameClick?.(game)}
+            />
+          ))
+        )}
       </div>
     </div>
   )

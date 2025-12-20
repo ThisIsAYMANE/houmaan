@@ -76,15 +76,22 @@ export default function GameCard({
             </div>
           )}
 
-          {/* Center Graphic/Play Button */}
+          {/* Center Graphic/Play Button - Always visible but smaller */}
           <div className="relative z-0">
             <div className="w-24 h-24 flex items-center justify-center">
-              <Play className="w-20 h-20 text-white/80 group-hover:scale-110 transition-transform" />
+              <Play className="w-20 h-20 text-white/80 transition-transform" />
+            </div>
+          </div>
+
+          {/* Hover Overlay with Large Play Button */}
+          <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-20 rounded-lg">
+            <div className="bg-white/10 backdrop-blur-md rounded-full p-8 border-2 border-white/30 transform scale-75 group-hover:scale-100 transition-all duration-300 shadow-2xl">
+              <Play className="w-20 h-20 text-white fill-white drop-shadow-lg" />
             </div>
           </div>
 
           {/* Footer Bar - Bottom */}
-          <div className={`absolute bottom-0 left-0 right-0 ${isOriginal ? 'bg-green-800/90' : providerName.includes('Pragmatic') ? 'bg-blue-800/90' : 'bg-gray-900/90'} backdrop-blur-sm px-3 py-2 flex items-center justify-between`}>
+          <div className={`absolute bottom-0 left-0 right-0 ${isOriginal ? 'bg-green-800/90' : providerName.includes('Pragmatic') ? 'bg-blue-800/90' : 'bg-gray-900/90'} backdrop-blur-sm px-3 py-2 flex items-center justify-between z-10`}>
             <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4 text-white" />
               <span className="text-white text-xs font-semibold">{playerCount.toLocaleString()}</span>
