@@ -35,10 +35,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col overflow-x-hidden">
       <Header onMenuClick={toggleSidebar} />
       
-      <div className="flex flex-1 pt-16">
+      <div className="flex flex-1 pt-16 overflow-x-hidden">
         <Sidebar 
           isOpen={sidebarOpen} 
           isCollapsed={sidebarCollapsed}
@@ -46,7 +46,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         />
         
         <div 
-          className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] transition-all duration-300 ease-in-out"
+          className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] transition-all duration-300 ease-in-out overflow-x-hidden min-w-0"
           style={{
             marginLeft: sidebarOpen 
               ? sidebarCollapsed 
@@ -55,7 +55,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
               : '0',
           }}
         >
-          <main className="flex-1">
+          <main className="flex-1 w-full max-w-full overflow-x-hidden min-w-0">
             {children}
           </main>
           <Footer />

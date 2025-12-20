@@ -17,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr" className={inter.variable}>
-      <body className="min-h-screen bg-background-primary text-text-primary">
+    <html lang="fr" className={`${inter.variable} overflow-x-hidden`}>
+      <body className="min-h-screen bg-background-primary text-text-primary overflow-x-hidden">
         <MainLayout>{children}</MainLayout>
         <Toaster
           position="top-right"
