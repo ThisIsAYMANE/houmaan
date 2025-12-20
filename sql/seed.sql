@@ -48,3 +48,5 @@ INSERT INTO vip_levels (id, level, name, min_wager) VALUES
 ('vip5', 5, 'VIP5', 100000)
 ON CONFLICT (level) DO NOTHING;
 
+
+

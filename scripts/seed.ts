@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { db, query } from '../lib/db'
+import { query } from '../lib/db'
 
 // Helper to generate CUID-like IDs
 function generateId(): string {
@@ -29,7 +29,7 @@ async function seed() {
     for (const category of categories) {
       await query(
         `INSERT INTO game_categories (id, name, slug, "order")
-         VALUES ($1, $2, $3, $4)
+         VALUES (?, ?, ?, ?)
          ON CONFLICT (slug) DO NOTHING`,
         [generateId(), category.name, category.slug, category.order]
       )
@@ -49,7 +49,7 @@ async function seed() {
     for (const provider of providers) {
       await query(
         `INSERT INTO game_providers (id, name, slug)
-         VALUES ($1, $2, $3)
+         VALUES (?, ?, ?)
          ON CONFLICT (slug) DO NOTHING`,
         [generateId(), provider.name, provider.slug]
       )
@@ -71,7 +71,7 @@ async function seed() {
     for (const sport of sports) {
       await query(
         `INSERT INTO sports (id, name, slug, "order")
-         VALUES ($1, $2, $3, $4)
+         VALUES (?, ?, ?, ?)
          ON CONFLICT (slug) DO NOTHING`,
         [generateId(), sport.name, sport.slug, sport.order]
       )
@@ -91,7 +91,7 @@ async function seed() {
     for (const vip of vipLevels) {
       await query(
         `INSERT INTO vip_levels (id, level, name, min_wager)
-         VALUES ($1, $2, $3, $4)
+         VALUES (?, ?, ?, ?)
          ON CONFLICT (level) DO NOTHING`,
         [generateId(), vip.level, vip.name, vip.minWager]
       )
@@ -102,10 +102,7 @@ async function seed() {
   } catch (error) {
     console.error('❌ Seed failed:', error)
     process.exit(1)
-  } finally {
-    await db.end()
   }
 }
 
 seed()
-

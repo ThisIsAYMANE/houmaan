@@ -12,6 +12,14 @@ export function successResponse<T>(data: T, status: number = 200) {
 }
 
 export function errorResponse(error: unknown, status?: number) {
+  // Log error for debugging
+  console.error('API Error:', error)
+  if (error instanceof Error) {
+    console.error('Error name:', error.name)
+    console.error('Error message:', error.message)
+    console.error('Error stack:', error.stack)
+  }
+
   if (error instanceof AppError) {
     return NextResponse.json(
       {
@@ -40,6 +48,8 @@ export function errorResponse(error: unknown, status?: number) {
     { status: status || 500 }
   )
 }
+
+
 
 
 

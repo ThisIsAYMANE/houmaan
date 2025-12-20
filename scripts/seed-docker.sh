@@ -53,3 +53,5 @@ ON CONFLICT (level) DO NOTHING;
 SELECT 'Seed completed successfully!' as status;
 EOF
 
+
+

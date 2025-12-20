@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { db } from '../lib/db'
+import { db, query, exec } from '../lib/db'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -39,7 +39,7 @@ async function resetDatabase() {
 
     for (const table of dropTables) {
       try {
-        await db.query(`DROP TABLE IF EXISTS ${table} CASCADE`)
+        exec(`DROP TABLE IF EXISTS ${table}`)
         console.log(`✅ Dropped table ${table}`)
       } catch (error) {
         // Table might not exist, continue
@@ -48,28 +48,25 @@ async function resetDatabase() {
 
     // Re-run migrations
     console.log('\n🔄 Re-running migrations...')
-    const migrationFile = join(process.cwd(), 'sql', 'migrations', '001_initial_schema.sql')
+    const migrationFile = join(process.cwd(), 'sql', 'migrations', '001_initial_schema.sqlite.sql')
     const sql = readFileSync(migrationFile, 'utf-8')
-    await db.query(sql)
+    exec(sql)
 
     // Create migrations record
-    await db.query(`
+    await query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
         version TEXT PRIMARY KEY,
-        applied_at TIMESTAMP DEFAULT NOW()
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `)
-    await db.query("INSERT INTO schema_migrations (version) VALUES ('001_initial_schema') ON CONFLICT DO NOTHING")
+    await query("INSERT INTO schema_migrations (version) VALUES (?) ON CONFLICT DO NOTHING", ['001_initial_schema'])
 
     console.log('🎉 Database reset completed!')
     console.log('💡 Run "npm run db:seed" to populate initial data')
   } catch (error) {
     console.error('❌ Reset failed:', error)
     process.exit(1)
-  } finally {
-    await db.end()
   }
 }
 
 resetDatabase()
-

@@ -49,6 +49,14 @@ next-env.d.ts
 # Docker
 docker-compose.override.yml
 
+# SQLite database
+/data/
+*.db
+*.db-shm
+*.db-wal
+
+
+
 
 
 
