@@ -66,3 +66,4 @@ If addresses still look fake:
 - The fallback placeholder will be used if real generation fails
 - Check that `bitcoinjs-lib` and `tiny-secp256k1` are installed
 
+

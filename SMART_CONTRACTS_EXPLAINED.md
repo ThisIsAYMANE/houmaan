@@ -172,3 +172,4 @@ You're using:
 
 **For now, stick with Bitcoin payments - they work great without smart contracts!**
 
+

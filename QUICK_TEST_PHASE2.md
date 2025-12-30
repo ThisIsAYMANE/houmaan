@@ -120,3 +120,4 @@ curl -X GET http://localhost:3000/api/wallet/balance \
 - [ ] Wallet credited after confirmation
 - [ ] Transaction appears in history
 
+

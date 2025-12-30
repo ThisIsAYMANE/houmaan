@@ -44,3 +44,48 @@ export default function RootLayout({
 
 
 
+
+import './globals.css'
+import ConditionalLayout from '@/components/layout/ConditionalLayout'
+import { Toaster } from 'react-hot-toast'
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
+
+export const metadata: Metadata = {
+  title: 'boz.Topol - Casino & Sports Betting',
+  description: 'boz.Topol - Your premier destination for casino games and sports betting',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="fr" className={`${inter.variable} overflow-x-hidden`}>
+      <body className="min-h-screen bg-background-primary text-text-primary overflow-x-hidden">
+        <ConditionalLayout>{children}</ConditionalLayout>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: 'var(--background-elevated)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--background-secondary)',
+            },
+          }}
+        />
+      </body>
+    </html>
+  )
+}
+
+
+
+

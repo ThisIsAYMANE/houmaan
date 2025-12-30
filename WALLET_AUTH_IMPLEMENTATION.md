@@ -128,3 +128,4 @@ import WalletConnectButton from '@/components/auth/WalletConnectButton'
 - Support for other blockchains (Polygon, BSC, etc.)
 
 
+

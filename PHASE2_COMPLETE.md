@@ -267,3 +267,4 @@ Phase 2 has been completed with all Bitcoin payment system components implemente
 - Payment expiration set to **30 minutes**
 - Testnet requires **1 confirmation**, mainnet requires **6 confirmations**
 
+
