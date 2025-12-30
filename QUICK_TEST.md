@@ -76,3 +76,4 @@ curl "http://localhost:3000/api/wallet/transactions?limit=10" \
 - Wait 1 minute for rate limit window to reset
 - Check server logs for rate limit messages
 
+

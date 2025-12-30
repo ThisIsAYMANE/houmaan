@@ -18,6 +18,11 @@
     "test:wallet": "tsx tests/test-wallet-manual.ts",
     "test:api": "tsx tests/test-api-manual.ts",
     "test:phase1": "tsx tests/test-wallet-manual.ts && tsx tests/test-api-manual.ts",
+    "test:phase2:deposit": "tsx tests/test-phase2-deposit.ts",
+    "test:phase2:payment": "tsx tests/test-phase2-payment.ts",
+    "test:phase2:full": "tsx tests/test-phase2-full.ts",
+    "test:phase2:complete": "tsx tests/test-phase2-complete.ts",
+    "test:phase2": "tsx tests/test-phase2-deposit.ts",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f"
@@ -25,6 +30,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
     "bcryptjs": "^2.4.3",
+    "bitcoinjs-lib": "^7.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -38,12 +44,13 @@
     "react-hot-toast": "^2.4.1",
     "recharts": "^3.6.0",
     "tailwind-merge": "^2.5.0",
+    "tiny-secp256k1": "^2.2.4",
     "zod": "^3.23.0",
     "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20.14.0",
+    "@types/node": "^20.19.27",
     "@types/pg": "^8.10.9",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",

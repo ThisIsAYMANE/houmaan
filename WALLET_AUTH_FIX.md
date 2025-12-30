@@ -37,3 +37,4 @@ If you still get errors, check:
 2. Server logs for specific error messages
 3. Browser console for detailed error info
 
+

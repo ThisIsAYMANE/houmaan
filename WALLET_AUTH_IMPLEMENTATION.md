@@ -127,3 +127,4 @@ import WalletConnectButton from '@/components/auth/WalletConnectButton'
 - Wallet balance display
 - Support for other blockchains (Polygon, BSC, etc.)
 
+

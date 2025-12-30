@@ -8,3 +8,4 @@ ALTER TABLE wallets ADD COLUMN bonus_balance DECIMAL(18, 8) DEFAULT 0;
 -- Update existing rows to have 0 bonus_balance
 UPDATE wallets SET bonus_balance = 0 WHERE bonus_balance IS NULL;
 
+
