@@ -4,13 +4,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:admin": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
+    "start:admin": "next start -p 3001",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:reset": "tsx scripts/reset-db.ts",
+    "admin:create": "tsx scripts/create-admin.ts",
+    "test": "tsx tests/run-tests.ts",
+    "test:wallet": "tsx tests/test-wallet-manual.ts",
+    "test:api": "tsx tests/test-api-manual.ts",
+    "test:phase1": "tsx tests/test-wallet-manual.ts && tsx tests/test-api-manual.ts",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f"
@@ -29,6 +36,7 @@
     "react-dom": "^18.3.0",
     "react-hook-form": "^7.52.0",
     "react-hot-toast": "^2.4.1",
+    "recharts": "^3.6.0",
     "tailwind-merge": "^2.5.0",
     "zod": "^3.23.0",
     "zustand": "^4.5.0"

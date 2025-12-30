@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { successResponse, errorResponse } from '@/lib/api-response'
 
 export async function GET() {
   try {
@@ -17,17 +18,13 @@ export async function GET() {
       ORDER BY "order" ASC, name ASC
     `)
 
-    return NextResponse.json({
-      categories: result.rows
-    })
+    return successResponse(result.rows)
   } catch (error) {
     console.error('Error fetching categories:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch categories' },
-      { status: 500 }
-    )
+    return errorResponse(error)
   }
 }
+
 
 
 

@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema, type LoginInput } from '@/lib/validation'
 import { useAuthStore } from '@/stores/auth-store'
 import toast from 'react-hot-toast'
+import WalletConnectButton from './WalletConnectButton'
 
 interface LoginModalProps {
   isOpen: boolean
@@ -203,16 +204,46 @@ export default function LoginModal({
               Ou connectez-vous avec
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {['Google', 'X', 'Telegram', 'MetaMask', 'WalletConnect', 'Line', 'Steam'].map(
-                (provider) => (
-                  <button
-                    key={provider}
-                    className="px-4 py-2 bg-background-elevated text-text-primary rounded-md text-sm font-medium hover:bg-background-primary transition-colors"
-                  >
-                    {provider}
-                  </button>
-                )
-              )}
+              {/* Social Login Options */}
+              {['Google', 'X', 'Telegram', 'Line', 'Steam'].map((provider) => (
+                <button
+                  key={provider}
+                  className="px-4 py-2 bg-background-elevated text-text-primary rounded-md text-sm font-medium hover:bg-background-primary transition-colors"
+                  disabled
+                  title="Bientôt disponible"
+                >
+                  {provider}
+                </button>
+              ))}
+            </div>
+            
+            {/* Crypto Wallet Options */}
+            <div className="mt-4">
+              <p className="text-xs text-text-secondary text-center mb-3">
+                Portefeuilles crypto
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <WalletConnectButton
+                  walletName="MetaMask"
+                  isLogin={true}
+                  onSuccess={onClose}
+                />
+                <WalletConnectButton
+                  walletName="WalletConnect"
+                  isLogin={true}
+                  onSuccess={onClose}
+                />
+                <WalletConnectButton
+                  walletName="Coinbase"
+                  isLogin={true}
+                  onSuccess={onClose}
+                />
+                <WalletConnectButton
+                  walletName="TrustWallet"
+                  isLogin={true}
+                  onSuccess={onClose}
+                />
+              </div>
             </div>
           </div>
 
@@ -234,6 +265,8 @@ export default function LoginModal({
     </div>
   )
 }
+
+
 
 
 

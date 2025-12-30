@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema, type RegisterInput } from '@/lib/validation'
 import { useAuthStore } from '@/stores/auth-store'
 import toast from 'react-hot-toast'
+import WalletConnectButton from './WalletConnectButton'
 
 interface SignupFormProps {
   onSuccess?: () => void
@@ -157,8 +158,57 @@ export default function SignupForm({
         {isSubmitting ? 'Inscription...' : "S'inscrire"}
       </button>
 
+      <div className="mt-6 pt-6 border-t border-background-elevated">
+        <p className="text-sm text-text-secondary text-center mb-4">
+          Ou inscrivez-vous avec
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {/* Social Signup Options */}
+          {['Google', 'X', 'Telegram', 'Line', 'Steam'].map((provider) => (
+            <button
+              key={provider}
+              type="button"
+              className="px-4 py-2 bg-background-elevated text-text-primary rounded-md text-sm font-medium hover:bg-background-primary transition-colors"
+              disabled
+              title="Bientôt disponible"
+            >
+              {provider}
+            </button>
+          ))}
+        </div>
+        
+        {/* Crypto Wallet Options */}
+        <div className="mt-4">
+          <p className="text-xs text-text-secondary text-center mb-3">
+            Portefeuilles crypto
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <WalletConnectButton
+              walletName="MetaMask"
+              isLogin={false}
+              onSuccess={onSuccess}
+            />
+            <WalletConnectButton
+              walletName="WalletConnect"
+              isLogin={false}
+              onSuccess={onSuccess}
+            />
+            <WalletConnectButton
+              walletName="Coinbase"
+              isLogin={false}
+              onSuccess={onSuccess}
+            />
+            <WalletConnectButton
+              walletName="TrustWallet"
+              isLogin={false}
+              onSuccess={onSuccess}
+            />
+          </div>
+        </div>
+      </div>
+
       {onSwitchToLogin && (
-        <div className="text-center">
+        <div className="mt-6 text-center">
           <p className="text-sm text-text-secondary">
             Déjà un compte?{' '}
             <button
@@ -174,6 +224,8 @@ export default function SignupForm({
     </form>
   )
 }
+
+
 
 
 

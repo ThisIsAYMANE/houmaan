@@ -27,6 +27,8 @@ export async function GET(
         g.player_count,
         g.popularity,
         g.created_at,
+        g.category_id,
+        g.provider_id,
         gp.name as provider_name,
         gp.slug as provider_slug,
         gp.logo_url as provider_logo,
@@ -35,7 +37,7 @@ export async function GET(
       FROM games g
       INNER JOIN game_providers gp ON g.provider_id = gp.id
       INNER JOIN game_categories gc ON g.category_id = gc.id
-      WHERE g.id = ? AND g.is_active = 1
+      WHERE g.id = ?
     `
 
     const game = await queryOne(sql, [gameId])
@@ -56,5 +58,6 @@ export async function GET(
     )
   }
 }
+
 
 

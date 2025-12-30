@@ -1,0 +1,35 @@
+/* Admin-specific styles - loaded conditionally */
+@layer base {
+  /* Admin color variables */
+  :root {
+    --admin-primary: #10b981;
+    --admin-secondary: #059669;
+    --admin-danger: #ef4444;
+    --admin-warning: #f59e0b;
+    --admin-info: #3b82f6;
+    --admin-bg: #111827;
+    --admin-surface: #1f2937;
+    --admin-border: #374151;
+    --admin-text: #ffffff;
+    --admin-text-secondary: #9ca3af;
+  }
+
+  /* Admin-specific scrollbar */
+  body:has([data-admin="true"])::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  body:has([data-admin="true"])::-webkit-scrollbar-track {
+    background: var(--admin-surface);
+  }
+
+  body:has([data-admin="true"])::-webkit-scrollbar-thumb {
+    background: var(--admin-border);
+    border-radius: 4px;
+  }
+
+  body:has([data-admin="true"])::-webkit-scrollbar-thumb:hover {
+    background: #4b5563;
+  }
+}
