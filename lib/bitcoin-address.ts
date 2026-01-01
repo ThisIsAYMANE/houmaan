@@ -49,20 +49,17 @@ export async function createPaymentAddress(
   network: BitcoinNetwork = 'testnet',
   expirationMinutes: number = 30
 ): Promise<BitcoinAddress & { derivationPath?: string }> {
-  // Generate real Bitcoin address
+  // Generate real Bitcoin address with derivation path
   let address: string
   let derivationPath: string | undefined
   
   try {
-    // Try to use real wallet generation
     const walletModule = await import('./bitcoin-wallet')
-    const addressIndex = await walletModule.getNextAddressIndex(userId, network)
-    const result = walletModule.generateRealBitcoinAddress(addressIndex, network)
+    const result = await walletModule.generatePaymentAddressWithPath(userId, network)
     address = result.address
     derivationPath = result.derivationPath
   } catch (error) {
-    // Fallback to placeholder
-    console.warn('Real Bitcoin address generation failed, using placeholder:', error)
+    console.warn('Real Bitcoin address generation failed, using simple generation:', error)
     address = await generatePaymentAddress(userId, network)
     derivationPath = undefined
   }

@@ -86,20 +86,37 @@ export function generateRealBitcoinAddress(
 }
 
 /**
- * Get next available address index for a user
+ * Get next available address index (global counter across all users)
+ * This ensures each address is unique regardless of user
  */
 async function getNextAddressIndex(userId: string, network: BitcoinNetwork): Promise<number> {
   try {
-    const result = await queryOne<{ max_index: number | null }>(
-      `SELECT MAX(CAST(SUBSTR(derivation_path, -1) AS INTEGER)) as max_index
+    // Get all derivation paths for this network (global, not per-user)
+    const result = await query<{ derivation_path: string }>(
+      `SELECT derivation_path
        FROM bitcoin_addresses 
-       WHERE user_id = ? AND network = ? AND derivation_path IS NOT NULL`,
-      [userId, network]
+       WHERE network = ? AND derivation_path IS NOT NULL`,
+      [network]
     )
     
-    return (result?.max_index ?? -1) + 1
+    // Extract the index (last number) from each path and find max
+    let maxIndex = -1
+    for (const row of result.rows) {
+      const path = row.derivation_path
+      const lastSlashIndex = path.lastIndexOf('/')
+      if (lastSlashIndex !== -1) {
+        const indexStr = path.substring(lastSlashIndex + 1)
+        const index = parseInt(indexStr, 10)
+        if (!isNaN(index) && index > maxIndex) {
+          maxIndex = index
+        }
+      }
+    }
+    
+    return maxIndex + 1
   } catch (error) {
     // If derivation_path column doesn't exist yet, start from 0
+    console.warn('Could not get next address index:', error)
     return 0
   }
 }
@@ -111,17 +128,41 @@ export async function generatePaymentAddress(
   userId: string,
   network: BitcoinNetwork = 'testnet'
 ): Promise<string> {
-  // Get next address index for this user
+  // Get next address index (global counter across all users)
   const addressIndex = await getNextAddressIndex(userId, network)
+  
+  console.log(`[Bitcoin Wallet] Generating address at index ${addressIndex} for network ${network}`)
   
   // Generate real Bitcoin address
   const { address, derivationPath } = generateRealBitcoinAddress(addressIndex, network)
+  
+  console.log(`[Bitcoin Wallet] Generated address: ${address} (path: ${derivationPath})`)
   
   // Store the address info (optional, for tracking)
   // Note: This will be updated by createPaymentAddress in bitcoin-address.ts
   // We just return the address here
   
   return address
+}
+
+/**
+ * Generate a real Bitcoin address with derivation path for a payment
+ */
+export async function generatePaymentAddressWithPath(
+  userId: string,
+  network: BitcoinNetwork = 'testnet'
+): Promise<{ address: string; derivationPath: string }> {
+  // Get next address index (global counter across all users)
+  const addressIndex = await getNextAddressIndex(userId, network)
+  
+  console.log(`[Bitcoin Wallet] Generating address at index ${addressIndex} for network ${network}`)
+  
+  // Generate real Bitcoin address
+  const { address, derivationPath } = generateRealBitcoinAddress(addressIndex, network)
+  
+  console.log(`[Bitcoin Wallet] Generated address: ${address} (path: ${derivationPath})`)
+  
+  return { address, derivationPath }
 }
 
 /**

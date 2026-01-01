@@ -8,7 +8,9 @@ import {
   TrendingUp, 
   DollarSign,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Bitcoin,
+  Activity
 } from 'lucide-react'
 import {
   LineChart,
@@ -47,6 +49,12 @@ interface DashboardStats {
     totalDeposits: number
     totalWithdrawals: number
     totalBalance: number
+    pendingDeposits: number
+    pendingWithdrawals: number
+  }
+  bitcoin: {
+    totalDeposits: number
+    totalBTC: number
   }
   recent: {
     users: Array<{
@@ -62,6 +70,20 @@ interface DashboardStats {
       status: string
       placed_at: string
     }>
+    deposits: Array<{
+      id: string
+      user_id: string
+      amount: number
+      btc_amount: number | null
+      status: string
+      created_at: string
+      email: string
+    }>
+  }
+  charts: {
+    userGrowth: Array<{ name: string; users: number }>
+    revenue: Array<{ name: string; revenue: number; deposits: number }>
+    betStatus: Array<{ name: string; value: number }>
   }
 }
 
@@ -109,32 +131,10 @@ export default function AdminDashboard() {
     }
   }
 
-  // Mock data for charts (in production, fetch from API)
-  const userGrowthData = [
-    { name: 'Lun', users: 120 },
-    { name: 'Mar', users: 145 },
-    { name: 'Mer', users: 180 },
-    { name: 'Jeu', users: 210 },
-    { name: 'Ven', users: 250 },
-    { name: 'Sam', users: 280 },
-    { name: 'Dim', users: 320 },
-  ]
-
-  const revenueData = [
-    { name: 'Jan', revenue: 45000, deposits: 38000 },
-    { name: 'Fév', revenue: 52000, deposits: 42000 },
-    { name: 'Mar', revenue: 48000, deposits: 40000 },
-    { name: 'Avr', revenue: 61000, deposits: 50000 },
-    { name: 'Mai', revenue: 55000, deposits: 45000 },
-    { name: 'Juin', revenue: 67000, deposits: 55000 },
-  ]
-
-  const betStatusData = [
-    { name: 'Gagnés', value: stats?.betting.total ? Math.floor(stats.betting.total * 0.4) : 0 },
-    { name: 'Perdus', value: stats?.betting.total ? Math.floor(stats.betting.total * 0.35) : 0 },
-    { name: 'En attente', value: stats?.betting.pending || 0 },
-    { name: 'Annulés', value: stats?.betting.total ? Math.floor(stats.betting.total * 0.05) : 0 },
-  ]
+  // Use real data from API instead of mock data
+  const userGrowthData = stats?.charts.userGrowth || []
+  const revenueData = stats?.charts.revenue || []
+  const betStatusData = stats?.charts.betStatus || []
 
   if (loading) {
     return (
@@ -177,20 +177,21 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Games Card */}
+        {/* Bitcoin Deposits Card */}
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Jeux</p>
-              <p className="text-3xl font-bold text-white mt-2">{stats.games.total}</p>
+              <p className="text-gray-400 text-sm">Dépôts Bitcoin</p>
+              <p className="text-3xl font-bold text-white mt-2">{stats.bitcoin.totalDeposits}</p>
               <div className="flex items-center mt-2">
-                <span className="text-blue-400 text-sm">
-                  {stats.games.active} actifs
+                <span className="text-orange-400 text-sm flex items-center">
+                  <Bitcoin className="w-4 h-4 mr-1" />
+                  {stats.bitcoin.totalBTC.toFixed(4)} BTC
                 </span>
               </div>
             </div>
-            <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-              <Gamepad2 className="w-6 h-6 text-blue-500" />
+            <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
+              <Bitcoin className="w-6 h-6 text-orange-500" />
             </div>
           </div>
         </div>
@@ -226,12 +227,9 @@ export default function AdminDashboard() {
                 })}
               </p>
               <div className="flex items-center mt-2">
-                <span className="text-green-400 text-sm">
-                  +{stats.financial.totalDeposits.toLocaleString('fr-FR', {
-                    style: 'currency',
-                    currency: 'MAD',
-                    minimumFractionDigits: 0,
-                  })}
+                <span className="text-green-400 text-sm flex items-center">
+                  <Activity className="w-4 h-4 mr-1" />
+                  {stats.financial.pendingDeposits} en attente
                 </span>
               </div>
             </div>
@@ -331,36 +329,40 @@ export default function AdminDashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Activity Timeline */}
+        {/* Activity Timeline - Total Bets Over Time */}
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <h2 className="text-xl font-bold text-white mb-4">Activité récente</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={userGrowthData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="name" stroke="#9ca3af" />
-              <YAxis stroke="#9ca3af" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1f2937', 
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  color: '#fff'
-                }} 
-              />
-              <Line type="monotone" dataKey="users" stroke="#f59e0b" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+          <h2 className="text-xl font-bold text-white mb-4">Montant total misé</h2>
+          <div className="text-center py-20">
+            <p className="text-4xl font-bold text-white">
+              {stats?.betting.totalWagered.toLocaleString('fr-FR', {
+                style: 'currency',
+                currency: 'MAD',
+                minimumFractionDigits: 0,
+              })}
+            </p>
+            <p className="text-gray-400 mt-2">Montant total des paris</p>
+            <div className="mt-6 grid grid-cols-2 gap-4">
+              <div className="bg-gray-700 p-4 rounded-lg">
+                <p className="text-gray-400 text-sm">Paris actifs</p>
+                <p className="text-2xl font-bold text-yellow-400">{stats?.betting.pending || 0}</p>
+              </div>
+              <div className="bg-gray-700 p-4 rounded-lg">
+                <p className="text-gray-400 text-sm">Paris totaux</p>
+                <p className="text-2xl font-bold text-green-400">{stats?.betting.total || 0}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Recent Activity Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Users */}
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
           <h2 className="text-xl font-bold text-white mb-4">Utilisateurs récents</h2>
           <div className="space-y-3">
             {stats.recent.users.length > 0 ? (
-              stats.recent.users.map((user) => (
+              stats.recent.users.slice(0, 5).map((user) => (
                 <div
                   key={user.id}
                   className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
@@ -388,12 +390,56 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Recent Deposits */}
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Dépôts récents</h2>
+          <div className="space-y-3">
+            {stats.recent.deposits.length > 0 ? (
+              stats.recent.deposits.slice(0, 5).map((deposit) => (
+                <div
+                  key={deposit.id}
+                  className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
+                >
+                  <div>
+                    <p className="text-white font-medium">
+                      {deposit.amount.toLocaleString('fr-FR', {
+                        style: 'currency',
+                        currency: 'MAD',
+                      })}
+                    </p>
+                    {deposit.btc_amount && (
+                      <p className="text-orange-400 text-xs flex items-center gap-1">
+                        <Bitcoin className="w-3 h-3" />
+                        {deposit.btc_amount.toFixed(6)} BTC
+                      </p>
+                    )}
+                    <p className="text-gray-400 text-sm">{deposit.email}</p>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs ${
+                      deposit.status === 'completed'
+                        ? 'bg-green-500/20 text-green-400'
+                        : deposit.status === 'pending'
+                        ? 'bg-yellow-500/20 text-yellow-400'
+                        : 'bg-red-500/20 text-red-400'
+                    }`}
+                  >
+                    {deposit.status}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-400 text-center py-4">Aucun dépôt récent</p>
+            )}
+          </div>
+        </div>
+
         {/* Recent Bets */}
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
           <h2 className="text-xl font-bold text-white mb-4">Paris récents</h2>
           <div className="space-y-3">
             {stats.recent.bets.length > 0 ? (
-              stats.recent.bets.map((bet) => (
+              stats.recent.bets.slice(0, 5).map((bet) => (
                 <div
                   key={bet.id}
                   className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
