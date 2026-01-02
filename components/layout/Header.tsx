@@ -4,6 +4,7 @@ import { Menu, Search, Gift, MessageCircle, Bell, User } from 'lucide-react'
 import Link from 'next/link'
 import BCJetonCard from './BCJetonCard'
 import ProfileDropdown from './ProfileDropdown'
+import NotificationBell from './NotificationBell'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -65,10 +66,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               <MessageCircle className="w-5 h-5 text-text-primary" />
             </button>
             
-            <button className="p-2 hover:bg-background-elevated rounded-md relative">
-              <Bell className="w-5 h-5 text-text-primary" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-accent-secondary rounded-full"></span>
-            </button>
+            <NotificationBell />
             
             <ProfileDropdown />
           </div>

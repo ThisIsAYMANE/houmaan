@@ -423,66 +423,7 @@ This document outlines the phased implementation plan for the complete betting/c
 
 ---
 
-## Phase 9: Security & Compliance
-**Goal**: Advanced security and regulatory compliance
-
-### Tasks
-1. **Two-Factor Authentication (2FA)**
-   - TOTP implementation
-   - QR code generation for setup
-   - Backup codes
-   - 2FA enforcement for sensitive actions
-
-2. **Age Verification**
-   - Age verification system
-   - Document upload
-   - Verification workflow
-   - Verification status tracking
-
-3. **Geo-Blocking**
-   - Country detection
-   - IP-based blocking
-   - Allowed/blocked countries list
-   - VPN detection (optional)
-
-4. **Fraud Protection**
-   - Suspicious activity detection
-   - Transaction monitoring
-   - Account flagging
-   - Automated risk scoring
-
-5. **Data Encryption**
-   - Sensitive data encryption
-   - Database encryption
-   - API encryption
-   - Secure key management
-
-6. **Responsible Gambling Tools**
-   - Deposit limits
-   - Loss limits
-   - Time limits
-   - Self-exclusion
-   - Reality checks
-
-### Testing Checklist
-- [ ] 2FA works correctly
-- [ ] Age verification functional
-- [ ] Geo-blocking works
-- [ ] Fraud detection triggers
-- [ ] Data encrypted properly
-- [ ] Responsible gambling tools work
-
-### Deliverables
-- 2FA system
-- Age verification
-- Geo-blocking
-- Fraud protection
-- Encryption system
-- Responsible gambling tools
-
----
-
-## Phase 10: Testing & Optimization
+## Phase 9: Testing & Optimization
 **Goal**: Complete testing and performance optimization
 
 ### Tasks

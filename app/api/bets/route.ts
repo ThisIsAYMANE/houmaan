@@ -55,27 +55,45 @@ async function checkUserPendingBets(userId: string): Promise<{ canBet: boolean; 
   return { canBet: true }
 }
 
-// Check and deduct wallet balance
+// Check and deduct wallet balance (atomic operation to prevent race conditions)
 async function deductWalletBalance(userId: string, amount: number): Promise<{ success: boolean; error?: string; newBalance?: number }> {
   try {
-    // Get current balance
-    const wallet = await queryOne<{ balance: number }>(
+    // Use atomic UPDATE with WHERE clause to prevent race conditions
+    // This ensures balance check and deduction happen atomically
+    // SQLite will only update if balance >= amount
+    const result = await query(
+      `UPDATE wallets 
+       SET balance = balance - ?, updated_at = CURRENT_TIMESTAMP 
+       WHERE user_id = ? AND currency = ? AND balance >= ?`,
+      [amount, userId, 'MAD', amount]
+    )
+    
+    // Check if any rows were updated (rowCount > 0 means update succeeded)
+    if (result.rowCount === 0) {
+      // Check if wallet exists or if balance is insufficient
+      const wallet = await queryOne<{ balance: number }>(
+        'SELECT balance FROM wallets WHERE user_id = ? AND currency = ?',
+        [userId, 'MAD']
+      )
+      
+      if (!wallet) {
+        return { success: false, error: 'Wallet not found' }
+      }
+      
+      if (wallet.balance < amount) {
+        return { success: false, error: 'Insufficient balance' }
+      }
+      
+      return { success: false, error: 'Failed to process payment' }
+    }
+    
+    // Get updated balance
+    const updatedWallet = await queryOne<{ balance: number }>(
       'SELECT balance FROM wallets WHERE user_id = ? AND currency = ?',
       [userId, 'MAD']
     )
     
-    if (!wallet || wallet.balance < amount) {
-      return { success: false, error: 'Insufficient balance' }
-    }
-    
-    // Deduct balance
-    const newBalance = wallet.balance - amount
-    await query(
-      'UPDATE wallets SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND currency = ?',
-      [newBalance, userId, 'MAD']
-    )
-    
-    return { success: true, newBalance }
+    return { success: true, newBalance: updatedWallet?.balance || 0 }
   } catch (error) {
     console.error('Error deducting wallet balance:', error)
     return { success: false, error: 'Failed to process payment' }

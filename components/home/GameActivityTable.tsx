@@ -167,4 +167,6 @@ interface GameActivityTableProps {
   activeTab?: 'last-bet' | 'top-roll' | 'betting-contest'
   onTabChange?: (tab: 'last-bet' | 'top-roll' | 'betting-contest') => void
 }
-
+
+
+
