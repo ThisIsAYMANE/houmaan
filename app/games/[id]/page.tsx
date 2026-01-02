@@ -257,13 +257,6 @@ export default function GameDetailPage() {
   )
 }
 
-
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Play, Heart, Loader2 } from 'lucide-react'
-import GameLaunch from '@/components/casino/GameLaunch'
-import { mockGames } from '@/lib/mockData'
-
 interface Game {
   id: string
   title: string

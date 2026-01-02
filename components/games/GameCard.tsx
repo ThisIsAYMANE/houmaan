@@ -94,7 +94,7 @@ export default function GameCard({
           <div className={`absolute bottom-0 left-0 right-0 ${isOriginal ? 'bg-green-800/90' : providerName.includes('Pragmatic') ? 'bg-blue-800/90' : 'bg-gray-900/90'} backdrop-blur-sm px-3 py-2 flex items-center justify-between z-10`}>
             <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4 text-white" />
-              <span className="text-white text-xs font-semibold">{playerCount.toLocaleString()}</span>
+              <span className="text-white text-xs font-semibold">{playerCount.toLocaleString('en-US')}</span>
             </div>
             <span className="text-white text-xs font-semibold">{providerName}</span>
           </div>
