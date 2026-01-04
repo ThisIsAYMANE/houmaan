@@ -40,3 +40,4 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+
