@@ -3,7 +3,6 @@
 import { useRef, useState, useEffect, Children } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import GameCard from './GameCard'
-import Link from 'next/link'
 
 interface Game {
   id: string
@@ -45,7 +44,7 @@ export default function GameCarousel({
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return
 
-    const scrollAmount = 600
+    const scrollAmount = 500 // Adjusted for smaller cards
     const newScrollLeft =
       scrollRef.current.scrollLeft +
       (direction === 'left' ? -scrollAmount : scrollAmount)
@@ -79,7 +78,7 @@ export default function GameCarousel({
   useEffect(() => {
     if (!autoScroll || !scrollRef.current || gamesCount === 0) return
 
-    const cardWidth = 196 // 180px card + 16px gap
+    const cardWidth = 172 // 160px card + 12px gap
     const firstSetWidth = gamesCount * cardWidth
     
     // Set initial position to the middle set (second set of games) after a short delay
@@ -98,7 +97,7 @@ export default function GameCarousel({
       return
     }
 
-    const cardWidth = 196 // 180px card + 16px gap
+    const cardWidth = 172 // 160px card + 12px gap
     const singleSetWidth = gamesCount * cardWidth
     const { scrollLeft } = scrollRef.current
 
@@ -143,7 +142,7 @@ export default function GameCarousel({
       const deltaTime = timestamp - lastTimestamp
       lastTimestamp = timestamp
 
-      const cardWidth = 196 // 180px card + 16px gap
+      const cardWidth = 172 // 160px card + 12px gap
       const singleSetWidth = gamesCount * cardWidth
       const scrollAmount = scrollSpeed * deltaTime
 
@@ -199,20 +198,20 @@ export default function GameCarousel({
       {title && (
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-text-primary">{title}</h2>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {viewAllHref && (
-              <Link
+              <a
                 href={viewAllHref}
-                className="text-accent-primary hover:text-accent-secondary text-sm font-semibold transition-colors"
+                className="text-text-primary hover:text-text-secondary text-sm font-semibold transition-colors px-3 py-1.5 rounded bg-bg-tertiary hover:bg-bg-primary inline-block"
               >
                 Tous
-              </Link>
+              </a>
             )}
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               <button
                 onClick={() => scroll('left')}
                 disabled={!canScrollLeft}
-                className="p-2 rounded-lg bg-bg-secondary hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-bg-tertiary hover:bg-bg-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 aria-label="Scroll left"
               >
                 <ChevronLeft className="w-5 h-5 text-text-primary" />
@@ -220,7 +219,7 @@ export default function GameCarousel({
               <button
                 onClick={() => scroll('right')}
                 disabled={!canScrollRight}
-                className="p-2 rounded-lg bg-bg-secondary hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-bg-tertiary hover:bg-bg-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 aria-label="Scroll right"
               >
                 <ChevronRight className="w-5 h-5 text-text-primary" />
@@ -233,7 +232,7 @@ export default function GameCarousel({
       {/* Carousel - horizontal scrollable */}
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory"
+        className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory"
         onScroll={handleScroll}
         onMouseEnter={() => {
           setIsHovered(true)

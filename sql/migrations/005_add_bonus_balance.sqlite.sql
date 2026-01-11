@@ -13,3 +13,4 @@ UPDATE wallets SET bonus_balance = 0 WHERE bonus_balance IS NULL;
 
 
 
+

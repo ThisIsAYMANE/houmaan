@@ -3,8 +3,26 @@ import { query, queryOne } from '@/lib/db'
 import { nanoid } from 'nanoid'
 import { initializeGameSession } from '@/lib/casino-api'
 
-// Get session from cookie
+// Get session from cookie or Authorization header
 async function getUserId(request: NextRequest): Promise<string | null> {
+  // Try Authorization header first (Bearer token)
+  const authHeader = request.headers.get('authorization')
+  if (authHeader) {
+    const sessionToken = authHeader.replace('Bearer ', '').trim()
+    if (sessionToken) {
+      try {
+        const session = await queryOne<{ user_id: string }>(
+          'SELECT user_id FROM sessions WHERE session_token = ? AND expires > CURRENT_TIMESTAMP',
+          [sessionToken]
+        )
+        if (session) return session.user_id
+      } catch {
+        // Continue to try cookie
+      }
+    }
+  }
+  
+  // Fallback to cookie
   const sessionCookie = request.cookies.get('session')
   if (!sessionCookie) return null
   
@@ -44,22 +62,13 @@ export async function POST(
       )
     }
 
-    // Check if game exists and is active
-    const game = await queryOne<{
-      id: string
-      game_url: string
-      title: string
-      provider_id: string
-      min_bet?: number
-    }>(
-      'SELECT id, game_url, title, provider_id, min_bet FROM games WHERE id = ? AND is_active = 1',
-      [gameId]
-    )
-
-    if (!game) {
+    // For Slotegrator games, gameId is the UUID
+    // We don't need to check database since games come from Slotegrator API
+    // Just validate it's a valid UUID format (32+ hex characters)
+    if (!gameId || gameId.length < 32) {
       return NextResponse.json(
-        { error: 'Game not found or inactive' },
-        { status: 404 }
+        { error: 'Invalid game ID' },
+        { status: 400 }
       )
     }
 
@@ -81,22 +90,13 @@ export async function POST(
 
     const totalBalance = wallet.balance + wallet.bonus_balance
 
-    // Check minimum balance requirement
-    if (game.min_bet && totalBalance < game.min_bet) {
-      return NextResponse.json(
-        { 
-          error: 'Insufficient balance',
-          minRequired: game.min_bet,
-          currentBalance: totalBalance
-        },
-        { status: 400 }
-      )
-    }
+    // Note: min_bet check removed since we're using Slotegrator games
+    // You can add a minimum balance check here if needed
 
     // Initialize game session with casino provider
-    // This will create a session token and prepare the game URL
+    // gameId is the Slotegrator game UUID
     const providerSession = await initializeGameSession(
-      gameId,
+      gameId, // This is the Slotegrator game UUID
       userId,
       totalBalance
     )
@@ -131,9 +131,8 @@ export async function POST(
     // Return game launch information
     return NextResponse.json({
       sessionId,
-      gameId: game.id,
+      gameId: gameId, // Slotegrator UUID
       gameUrl: providerSession.gameUrl,
-      title: game.title,
       balance: totalBalance,
       expiresAt: providerSession.expiresAt,
       message: 'Game session created successfully'

@@ -11,3 +11,4 @@ CREATE INDEX IF NOT EXISTS idx_bitcoin_addresses_derivation_path ON bitcoin_addr
 
 
 
+
