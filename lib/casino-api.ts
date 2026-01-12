@@ -199,15 +199,42 @@ async function makeCasinoRequest<T>(
   // Handle errors
   if (!response.ok) {
     let errorMessage = `Casino API request failed: ${response.status} ${response.statusText}`
+    let errorDetails: any = {}
     
     try {
       const errorData = await response.json()
-      errorMessage = errorData.message || errorData.name || errorMessage
+      errorMessage = errorData.message || errorData.name || errorData.error || errorMessage
+      errorDetails = errorData
     } catch {
-      // If response is not JSON, use status text
+      // If response is not JSON, try to get text
+      try {
+        const text = await response.text()
+        if (text) {
+          errorMessage = text
+        }
+      } catch {
+        // If we can't read the response, use default message
+      }
     }
 
-    throw new Error(errorMessage)
+    // Create a more detailed error
+    const detailedError = new Error(errorMessage)
+    // Attach additional details for debugging
+    ;(detailedError as any).status = response.status
+    ;(detailedError as any).statusText = response.statusText
+    ;(detailedError as any).details = errorDetails
+    ;(detailedError as any).endpoint = endpoint
+    
+    console.error('Casino API error:', {
+      endpoint,
+      method,
+      status: response.status,
+      statusText: response.statusText,
+      errorMessage,
+      errorDetails,
+    })
+    
+    throw detailedError
   }
 
   return response.json()
@@ -399,6 +426,87 @@ export async function getGames(options?: {
 }
 
 // ============================================
+// Limits & Enabled Providers
+// ============================================
+
+export interface MerchantLimit {
+  amount: string
+  currency: string
+  providers: string[]
+}
+
+/**
+ * GET /limits - Get Merchant Limits
+ * 
+ * Returns list of limits for merchant, including enabled providers per currency.
+ * This can be used to filter games to only show games from enabled providers.
+ */
+export async function getMerchantLimits(): Promise<MerchantLimit[]> {
+  try {
+    const response = await makeCasinoRequest<MerchantLimit[]>(
+      '/limits',
+      'GET'
+    )
+    return response
+  } catch (error) {
+    console.error('Error fetching merchant limits:', error)
+    // Return empty array if limits endpoint fails (non-critical)
+    return []
+  }
+}
+
+/**
+ * Get enabled providers for a specific currency
+ * 
+ * @param currency - Currency code (e.g., 'USD', 'EUR')
+ * @returns Set of enabled provider names (normalized for case-insensitive matching)
+ */
+export async function getEnabledProviders(currency: string = 'USD'): Promise<Set<string>> {
+  try {
+    const limits = await getMerchantLimits()
+    const enabledProviders = new Set<string>()
+    
+    console.log(`[Provider Filter] Fetching enabled providers for currency: ${currency}`)
+    console.log(`[Provider Filter] Limits response:`, JSON.stringify(limits, null, 2))
+    
+    // Find limits for the specified currency and collect all providers
+    // Also collect providers from ALL currencies as fallback (some providers might be enabled for other currencies)
+    limits.forEach(limit => {
+      if (limit.providers && Array.isArray(limit.providers)) {
+        limit.providers.forEach(provider => {
+          // Normalize provider name for case-insensitive matching
+          // Store both original and normalized versions
+          enabledProviders.add(provider.trim())
+        })
+      }
+    })
+    
+    // If no providers found for specific currency, try to get from all currencies
+    // This is a fallback - ideally we should match by currency, but if limits don't have currency-specific data,
+    // we'll use all providers as a safety measure
+    if (enabledProviders.size === 0 && limits.length > 0) {
+      console.warn(`[Provider Filter] No providers found for currency ${currency}, checking all currencies...`)
+      limits.forEach(limit => {
+        if (limit.providers && Array.isArray(limit.providers)) {
+          limit.providers.forEach(provider => {
+            enabledProviders.add(provider.trim())
+          })
+        }
+      })
+    }
+    
+    console.log(`[Provider Filter] Found ${enabledProviders.size} enabled providers:`, Array.from(enabledProviders))
+    
+    return enabledProviders
+  } catch (error) {
+    console.error('[Provider Filter] Error getting enabled providers:', error)
+    // Return empty set if we can't determine enabled providers
+    // This means we'll show all games (fallback behavior)
+    return new Set<string>()
+  }
+}
+
+// ============================================
 // Game Session Initialization
 // ============================================
 
@@ -476,7 +584,10 @@ export async function initializeGameSession(
                    (profile?.first_name && profile?.last_name 
                      ? `${profile.first_name} ${profile.last_name}` 
                      : user.username || user.email.split('@')[0] || 'Player'),
-      currency: options?.currency || profile?.currency || 'MAD',
+      // Use currency from options, profile, or environment variable, default to USD
+      // Note: Currency must be enabled in your Slotegrator contract
+      // Common supported currencies: USD, EUR, GBP, CAD, AUD, etc.
+      currency: options?.currency || profile?.currency || process.env.CASINO_DEFAULT_CURRENCY || 'USD',
       session_id: sessionId,
       device: options?.device || 'desktop',
       return_url: options?.returnUrl || process.env.CASINO_TEST_AREA_URL || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/casino`,

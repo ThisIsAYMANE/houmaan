@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query, queryOne } from '@/lib/db'
 import { nanoid } from 'nanoid'
-import { initializeGameSession } from '@/lib/casino-api'
+import { initializeGameSession, getGames, getEnabledProviders } from '@/lib/casino-api'
+import { getSession } from '@/lib/auth'
+import { getCachedData } from '@/lib/api-cache'
 
 // Get session from cookie or Authorization header
 async function getUserId(request: NextRequest): Promise<string | null> {
@@ -11,12 +13,12 @@ async function getUserId(request: NextRequest): Promise<string | null> {
     const sessionToken = authHeader.replace('Bearer ', '').trim()
     if (sessionToken) {
       try {
-        const session = await queryOne<{ user_id: string }>(
-          'SELECT user_id FROM sessions WHERE session_token = ? AND expires > CURRENT_TIMESTAMP',
-          [sessionToken]
-        )
-        if (session) return session.user_id
-      } catch {
+        const session = await getSession(sessionToken)
+        if (session && session.expires > new Date()) {
+          return session.userId
+        }
+      } catch (error) {
+        console.warn('Error validating session from Authorization header:', error)
         // Continue to try cookie
       }
     }
@@ -27,12 +29,13 @@ async function getUserId(request: NextRequest): Promise<string | null> {
   if (!sessionCookie) return null
   
   try {
-    const session = await queryOne<{ user_id: string }>(
-      'SELECT user_id FROM sessions WHERE session_token = ? AND expires > CURRENT_TIMESTAMP',
-      [sessionCookie.value]
-    )
-    return session?.user_id || null
-  } catch {
+    const session = await getSession(sessionCookie.value)
+    if (session && session.expires > new Date()) {
+      return session.userId
+    }
+    return null
+  } catch (error) {
+    console.warn('Error validating session from cookie:', error)
     return null
   }
 }
@@ -70,6 +73,59 @@ export async function POST(
         { error: 'Invalid game ID' },
         { status: 400 }
       )
+    }
+
+    // Check if the game's provider is enabled before attempting launch
+    // This prevents "provider not enabled" errors from Slotegrator
+    try {
+      // Get enabled providers
+      const enabledProviders = await getCachedData(
+        'enabled-providers',
+        async () => {
+          const providers = await getEnabledProviders('USD')
+          return Array.from(providers)
+        },
+        3600000 // Cache for 1 hour
+      )
+      const enabledProvidersSet = new Set(enabledProviders)
+
+      // If we have enabled providers list, verify the game's provider
+      if (enabledProvidersSet.size > 0) {
+        // Fetch game details to get provider name
+        // We'll search through a small batch of games to find this one
+        const gamesResponse = await getGames({
+          fetchAll: false,
+          maxPages: 5, // Only fetch first 5 pages to find the game (250 games should be enough)
+        })
+
+        const game = gamesResponse.items.find(g => g.uuid === gameId)
+        
+        if (game) {
+          const gameProvider = game.provider.trim()
+          const isEnabled = Array.from(enabledProvidersSet).some(
+            enabledProvider => enabledProvider.toLowerCase() === gameProvider.toLowerCase()
+          )
+
+          if (!isEnabled) {
+            console.warn(`[Game Launch] Blocked launch of game "${game.name}" from disabled provider "${gameProvider}"`)
+            return NextResponse.json(
+              { 
+                error: 'This game is not available',
+                message: 'This provider is not enabled for your contract'
+              },
+              { status: 403 }
+            )
+          }
+        } else {
+          // Game not found in first 5 pages - might be in later pages
+          // We'll let it proceed and let Slotegrator handle the error
+          console.warn(`[Game Launch] Game ${gameId} not found in first 5 pages, proceeding with launch`)
+        }
+      }
+    } catch (error) {
+      // If provider check fails, log but don't block launch
+      // This ensures we don't break the app if limits endpoint is down
+      console.error('[Game Launch] Error checking enabled providers:', error)
     }
 
     // Get user's wallet balance
@@ -139,8 +195,23 @@ export async function POST(
     })
   } catch (error) {
     console.error('Error launching game:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorStack = error instanceof Error ? error.stack : undefined
+    
+    // Log full error details for debugging
+    console.error('Error details:', {
+      message: errorMessage,
+      stack: errorStack,
+      gameId: params.id,
+    })
+    
     return NextResponse.json(
-      { error: 'Failed to launch game' },
+      { 
+        error: 'Failed to launch game',
+        message: errorMessage,
+        // Only include stack in development
+        ...(process.env.NODE_ENV === 'development' && { stack: errorStack })
+      },
       { status: 500 }
     )
   }

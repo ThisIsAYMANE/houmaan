@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Home, Target, Flame, Star, Tv, Heart, Circle, Dice6, Search, Filter, X } from 'lucide-react'
 import GameCarousel from '@/components/games/GameCarousel'
 import GameCard from '@/components/games/GameCard'
@@ -8,6 +8,8 @@ import GameLaunch from '@/components/casino/GameLaunch'
 import { mockGames, mockCategories } from '@/lib/mockData'
 import { getCachedData, setCachedData, CACHE_KEYS } from '@/lib/client-cache'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { useAuthStore } from '@/stores/auth-store'
 
 interface Game {
   id: string
@@ -39,7 +41,9 @@ interface Provider {
   logo_url?: string
 }
 
-export default function CasinoPage() {
+function CasinoPageContent() {
+  const searchParams = useSearchParams()
+  const { isAuthenticated } = useAuthStore()
   const [selectedCategory, setSelectedCategory] = useState('lobby')
   const [selectedProvider, setSelectedProvider] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -76,14 +80,42 @@ export default function CasinoPage() {
     }
   }, [searchQuery, games])
 
+  // Auto-launch game after login if game parameter is in URL
+  useEffect(() => {
+    const gameId = searchParams.get('game')
+    if (gameId && isAuthenticated && games.length > 0) {
+      // Find the game and launch it
+      const game = games.find(g => g.id === gameId) || mockGames.find(g => g.id === gameId)
+      if (game) {
+        setLaunchedGame(game)
+        // Clean up URL parameter
+        window.history.replaceState({}, '', '/casino')
+      }
+    }
+  }, [searchParams, isAuthenticated, games])
+
   const fetchCategories = async () => {
     try {
       // Check cache first
       const cached = getCachedData<{ categories: Category[] }>(CACHE_KEYS.CATEGORIES)
       if (cached) {
+        // Deduplicate by slug to prevent duplicate keys
+        const seenSlugs = new Set<string>(['lobby']) // Start with lobby
+        const uniqueCategories = cached.categories.filter(cat => {
+          if (seenSlugs.has(cat.slug)) {
+            // Only log in development to reduce console noise
+            if (process.env.NODE_ENV === 'development') {
+              console.debug(`Skipping duplicate category: ${cat.slug}`)
+            }
+            return false
+          }
+          seenSlugs.add(cat.slug)
+          return true
+        })
+        
         setCategories([
           { id: 'lobby', name: 'Lobby', slug: 'lobby' },
-          ...cached.categories
+          ...uniqueCategories
         ])
         return // Use cached data, don't fetch
       }
@@ -94,14 +126,29 @@ export default function CasinoPage() {
       })
       if (response.ok) {
         const data = await response.json()
+        
+        // Deduplicate by slug to prevent duplicate keys (safety check)
+        const seenSlugs = new Set<string>(['lobby']) // Start with lobby
+        const uniqueCategories = (data.categories || []).filter((cat: Category) => {
+          if (seenSlugs.has(cat.slug)) {
+            // Only log in development to reduce console noise
+            if (process.env.NODE_ENV === 'development') {
+              console.debug(`Skipping duplicate category from API: ${cat.slug}`)
+            }
+            return false
+          }
+          seenSlugs.add(cat.slug)
+          return true
+        })
+        
         const categoriesList = [
           { id: 'lobby', name: 'Lobby', slug: 'lobby' },
-          ...data.categories
+          ...uniqueCategories
         ]
         setCategories(categoriesList)
         
-        // Cache for 1 hour
-        setCachedData(CACHE_KEYS.CATEGORIES, { categories: data.categories }, 3600000)
+        // Cache for 1 hour (cache the deduplicated list)
+        setCachedData(CACHE_KEYS.CATEGORIES, { categories: uniqueCategories }, 3600000)
       } else {
         // Fallback to mock data
         setCategories(mockCategories)
@@ -408,5 +455,20 @@ export default function CasinoPage() {
         />
       )}
     </div>
+  )
+}
+
+export default function CasinoPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-primary"></div>
+          <p className="text-text-secondary mt-4">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <CasinoPageContent />
+    </Suspense>
   )
 }

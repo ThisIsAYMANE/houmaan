@@ -8,7 +8,7 @@ import BottomActionBar from '@/components/sports/BottomActionBar'
 import BetSlip from '@/components/sports/BetSlip'
 import SportsSearch from '@/components/sports/SportsSearch'
 import { Trophy, Activity, Crown, Radio, Zap, Target } from 'lucide-react'
-import { mockMatches } from '@/lib/mockData'
+// Removed mock data import - now using real Odds API data
 
 interface Match {
   id: string
@@ -16,16 +16,24 @@ interface Match {
   away_team: string
   home_team_logo?: string
   away_team_logo?: string
-  home_score: number
-  away_score: number
+  home_score?: number
+  away_score?: number
   status: string
   match_time?: string
   match_minute?: number
   is_live: boolean
-  sport_name?: string
-  sport_slug?: string
-  league_name?: string
+  sport_name?: string // e.g., "American Football" or "Football" (Soccer)
+  sport_slug?: string // e.g., "american-football" or "football"
+  sport_key?: string // Odds API sport key for filtering
+  league_name?: string // e.g., "NFL", "EPL", "NBA"
   half?: string
+  odds?: {
+    h2h?: {
+      home: number
+      draw?: number
+      away: number
+    }
+  }
 }
 
 interface Sport {
@@ -35,29 +43,44 @@ interface Sport {
   icon?: string
 }
 
-const sports: Sport[] = [
-  { id: '1', name: 'Football', slug: 'football' },
-  { id: '2', name: 'Basketball', slug: 'basketball' },
-  { id: '3', name: 'Tennis', slug: 'tennis' },
-  { id: '4', name: 'Hockey', slug: 'hockey' },
-  { id: '5', name: 'Volleyball', slug: 'volleyball' },
-  { id: '6', name: 'Baseball', slug: 'baseball' },
-  { id: '7', name: 'eFootball', slug: 'efootball' },
-  { id: '8', name: 'eFootball: Volta', slug: 'efootball-volta' },
-  { id: '9', name: 'Hockey sur glace', slug: 'ice-hockey' },
-  { id: '10', name: 'Handball', slug: 'handball' },
-  { id: '11', name: 'FC 26', slug: 'fc26' },
-  { id: '12', name: 'Tennis de table', slug: 'table-tennis' }
+// Sports will be loaded from Odds API
+const defaultSports: Sport[] = [
+  { id: 'soccer_epl', name: 'Football', slug: 'football' },
+  { id: 'basketball_nba', name: 'Basketball', slug: 'basketball' },
+  { id: 'tennis_atp_aus_open_singles', name: 'Tennis', slug: 'tennis' },
+  { id: 'icehockey_nhl', name: 'Hockey', slug: 'hockey' },
 ]
 
-const getSportIcon = (slug: string) => {
+const getSportIcon = (slug: string, sportKey?: string) => {
+  // Distinguish between American Football and Football/Soccer
+  if (sportKey?.startsWith('americanfootball_')) {
+    return Target // Use Target icon for American Football
+  }
+  
   switch (slug) {
     case 'football':
-      return Activity
+    case 'soccer':
+      return Activity // Activity icon for Football/Soccer
+    case 'american-football':
+      return Target // Target icon for American Football
     case 'basketball':
       return Target
     case 'tennis':
       return Zap
+    case 'ice-hockey':
+    case 'hockey':
+      return Trophy
+    case 'baseball':
+      return Trophy
+    case 'mma':
+      return Zap
+    case 'boxing':
+      return Target
+    case 'rugby-league':
+    case 'rugby-union':
+      return Trophy
+    case 'cricket':
+      return Trophy
     default:
       return Trophy
   }
@@ -81,15 +104,42 @@ export default function SportsPage() {
   const [activeTab, setActiveTab] = useState<'highlights' | 'program' | 'stream'>('highlights')
   const [selectedSport, setSelectedSport] = useState<string | null>(null)
   const [matches, setMatches] = useState<Match[]>([])
+  const [sports, setSports] = useState<Sport[]>(defaultSports)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [betSlipOpen, setBetSlipOpen] = useState(false)
   const [bets, setBets] = useState<Bet[]>([])
   const [flashBetEnabled, setFlashBetEnabled] = useState(false)
 
+  // Fetch sports list on mount
+  useEffect(() => {
+    fetchSports()
+  }, [])
+
   useEffect(() => {
     fetchMatches()
   }, [selectedSport, activeTab])
+
+  const fetchSports = async () => {
+    try {
+      const response = await fetch('/api/sports/sports-list')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.sports && data.sports.length > 0) {
+          // Map to our Sport format
+          const formattedSports = data.sports.map((sport: any) => ({
+            id: sport.key,
+            name: sport.name,
+            slug: sport.slug,
+          }))
+          setSports(formattedSports)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching sports list:', error)
+      // Keep default sports on error
+    }
+  }
 
   const fetchMatches = async () => {
     try {
@@ -105,7 +155,8 @@ export default function SportsPage() {
       } else if (activeTab === 'program') {
         params.append('status', 'upcoming')
       }
-      params.append('limit', '50')
+      // Request all matches - use a very high limit to get everything
+      params.append('limit', '10000')
       
       // Fetch from API
       const response = await fetch(`/api/sports/matches?${params.toString()}`)
@@ -114,28 +165,14 @@ export default function SportsPage() {
       if (data.matches && Array.isArray(data.matches) && data.matches.length > 0) {
         setMatches(data.matches)
       } else {
-        // Fallback to mock data if database is empty
-        console.warn('No matches in database, using mock data. Run sync service to populate.')
-        let filteredMatches = [...mockMatches] as Match[]
-        if (selectedSport) {
-          filteredMatches = filteredMatches.filter((m: any) => m.sport_id === selectedSport)
-        }
-        if (activeTab === 'highlights') {
-          filteredMatches = filteredMatches.filter(m => m.is_live)
-        }
-        setMatches(filteredMatches)
+        // No matches found - show empty state
+        setMatches([])
+        console.log('No matches found for the selected filters')
       }
     } catch (error) {
       console.error('Error fetching matches:', error)
-      // Fallback to mock data on error
-      let filteredMatches = [...mockMatches] as Match[]
-      if (selectedSport) {
-        filteredMatches = filteredMatches.filter((m: any) => m.sport_id === selectedSport)
-      }
-      if (activeTab === 'highlights') {
-        filteredMatches = filteredMatches.filter(m => m.is_live)
-      }
-      setMatches(filteredMatches)
+      // Show empty state on error instead of mock data
+      setMatches([])
     } finally {
       setLoading(false)
     }
@@ -216,34 +253,34 @@ export default function SportsPage() {
     router.push(`/sports/matches/${matchId}`)
   }
 
+  // Show ALL matches, not just a subset
   const liveMatches = matches.filter(m => m.is_live).map(m => ({
     ...m,
     half: m.match_minute && m.match_minute > 45 ? '2ème mi-temps' : m.match_minute ? '1ère mi-temps' : undefined
   }))
   const upcomingMatches = matches.filter(m => !m.is_live && m.status === 'upcoming')
-  const popularMatches = matches.slice(0, 6).map(m => ({
+  // Show ALL matches in popular section, not just 6
+  const popularMatches = matches.map(m => ({
     ...m,
     half: m.match_minute && m.match_minute > 45 ? '2ème mi-temps' : m.match_minute ? '1ère mi-temps' : undefined
   }))
 
-  // Mock odds data
+  // Get odds from match data (if available from Odds API)
   const getMatchOdds = (matchId: string) => {
     const match = matches.find(m => m.id === matchId)
     if (!match) return []
     
-    if (match.league_name?.includes('Premier League') || match.league_name?.includes('Bundesliga')) {
+    // If match has odds data from Odds API, use it
+    if ((match as any).odds?.h2h) {
+      const h2h = (match as any).odds.h2h
       return [
-        { selection: '1', odds: 1.1, label: '1' },
-        { selection: 'X', odds: 6.0, label: 'Match nul' },
-        { selection: '2', odds: 50.0, label: '2', change: 'down' as const }
+        { selection: '1', odds: h2h.home, label: '1' },
+        ...(h2h.draw ? [{ selection: 'X', odds: h2h.draw, label: 'Match nul' }] : []),
+        { selection: '2', odds: h2h.away, label: '2' }
       ]
     }
-    if (match.league_name?.includes('Total')) {
-      return [
-        { selection: 'over', odds: 4.9, label: 'Plus de 3.5' },
-        { selection: 'under', odds: 1.15, label: 'Moins de 3.5', change: 'down' as const }
-      ]
-    }
+    
+    // Fallback to default odds if no data available
     return [
       { selection: '1', odds: 1.47, label: '1' },
       { selection: 'X', odds: 4.1, label: 'Match nul' },
@@ -316,7 +353,7 @@ export default function SportsPage() {
                 <h2 className="text-xl font-bold text-text-primary">En Live</h2>
               </div>
               <LiveMatchesCarousel
-                matches={liveMatches.slice(0, 6)}
+                matches={liveMatches}
                 odds={matchesWithOdds}
                 onOddsClick={handleOddsClick}
                 onMatchClick={handleMatchClick}
@@ -342,10 +379,10 @@ export default function SportsPage() {
                 }`}
               >
                 <Activity className="w-4 h-4" />
-                Football
+                Tous
               </button>
-              {sports.slice(1).map((sport) => {
-                const Icon = getSportIcon(sport.slug) || Trophy
+              {sports.map((sport) => {
+                const Icon = getSportIcon(sport.slug, sport.id) || Trophy
                 return (
                   <button
                     key={sport.id}

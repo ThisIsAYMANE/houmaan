@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getGames, Game as SlotegratorGame } from '@/lib/casino-api'
+import { getGames, Game as SlotegratorGame, getEnabledProviders } from '@/lib/casino-api'
 import { mapTypeToCategorySlug } from '@/lib/category-mapping'
+import { getCachedData } from '@/lib/api-cache'
 
 // Next.js route segment config for caching
 export const revalidate = 300 // Revalidate every 5 minutes (games change more frequently)
@@ -105,8 +106,54 @@ export async function GET(request: NextRequest) {
       maxPages: maxPagesToFetch,
     })
 
-    // Map Slotegrator games to our format
-    let games = gamesResponse.items.map(mapSlotegratorGameToGame)
+    // Get enabled providers for the default currency (USD)
+    // This filters out games from providers that aren't enabled in the contract
+    const enabledProviders = await getCachedData(
+      'enabled-providers',
+      async () => {
+        const providers = await getEnabledProviders('USD')
+        return Array.from(providers)
+      },
+      3600000 // Cache for 1 hour
+    )
+    const enabledProvidersSet = new Set(enabledProviders)
+
+    // Map Slotegrator games to our format and filter by enabled providers
+    // Use case-insensitive matching for provider names
+    let games = gamesResponse.items
+      .filter(game => {
+        // Only include games from enabled providers
+        // If we can't determine enabled providers (empty set), show all games (fallback)
+        if (enabledProvidersSet.size === 0) {
+          console.warn(`[Provider Filter] No enabled providers found - showing all games (fallback mode)`)
+          return true // Fallback: show all games if we can't determine enabled providers
+        }
+        
+        // Case-insensitive provider matching
+        const gameProvider = game.provider.trim()
+        const isEnabled = Array.from(enabledProvidersSet).some(
+          enabledProvider => enabledProvider.toLowerCase() === gameProvider.toLowerCase()
+        )
+        
+        if (!isEnabled) {
+          console.debug(`[Provider Filter] Filtering out game "${game.name}" from provider "${gameProvider}" (not in enabled list)`)
+        }
+        
+        return isEnabled
+      })
+      .map(mapSlotegratorGameToGame)
+    
+    // Log filtering info
+    if (enabledProvidersSet.size > 0) {
+      const filteredCount = gamesResponse.items.length - games.length
+      if (filteredCount > 0) {
+        console.log(`[Provider Filter] Filtered out ${filteredCount} games from disabled providers. Showing ${games.length} games from ${enabledProvidersSet.size} enabled providers.`)
+      } else {
+        console.log(`[Provider Filter] All ${games.length} games are from enabled providers.`)
+      }
+    } else {
+      console.warn(`[Provider Filter] WARNING: Could not determine enabled providers - showing all ${games.length} games. This may cause "provider not enabled" errors.`)
+    }
 
     // Apply filters
     if (category && category !== 'lobby') {

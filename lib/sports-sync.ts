@@ -139,28 +139,67 @@ export async function fetchUpcomingMatches(days: number = 7): Promise<Match[]> {
 }
 
 /**
- * Fetch odds for a specific match
+ * Fetch odds for a specific match using The Odds API
  */
 export async function fetchMatchOdds(matchId: string): Promise<Odds[]> {
-  const config = getSportsAPIConfig()
-  
-  if (!config.apiKey) {
-    return []
-  }
-  
   try {
-    // TODO: Implement odds fetching
-    // Example for The Odds API:
+    // Check if Odds API is configured
+    const oddsApiKey = process.env.ODDS_API_KEY
+    if (!oddsApiKey) {
+      console.warn('⚠️ ODDS_API_KEY not configured. Cannot fetch odds.')
+      return []
+    }
+
+    // Import Odds API functions
+    const { getSportOdds } = await import('./odds-api')
+    
+    // TODO: Map matchId to sportKey and eventId
+    // For now, this is a placeholder - you'll need to:
+    // 1. Store the Odds API event ID when syncing matches
+    // 2. Or map your match ID to Odds API event ID
+    
+    // Example implementation:
     /*
-    const response = await fetch(
-      `https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?apiKey=${config.apiKey}&regions=eu&markets=h2h,spreads,totals`,
-    )
+    const match = await query('SELECT sport_key, odds_event_id FROM matches WHERE id = ?', [matchId])
+    if (match.rows.length === 0) {
+      return []
+    }
     
-    const data = await response.json()
+    const { sport_key, odds_event_id } = match.rows[0]
+    if (!sport_key || !odds_event_id) {
+      return []
+    }
     
-    // Transform odds to our format
+    const events = await getSportOdds(sport_key, {
+      regions: 'us',
+      markets: 'h2h,spreads,totals',
+      oddsFormat: 'decimal'
+    })
+    
+    const event = events.find(e => e.id === odds_event_id)
+    if (!event) {
+      return []
+    }
+    
+    // Transform Odds API format to our format
+    const odds: Odds[] = []
+    for (const bookmaker of event.bookmakers) {
+      for (const market of bookmaker.markets) {
+        for (const outcome of market.outcomes) {
+          odds.push({
+            match_id: matchId,
+            market_type: market.key,
+            selection: outcome.name,
+            odds: outcome.price, // Already in decimal format
+          })
+        }
+      }
+    }
+    
+    return odds
     */
     
+    console.log('📝 Odds fetching implementation pending - need to map match IDs to Odds API event IDs')
     return []
   } catch (error) {
     console.error('Error fetching odds:', error)

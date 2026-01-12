@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, Loader2, AlertCircle, LogIn } from 'lucide-react'
+import { X, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import LoginModal from '@/components/auth/LoginModal'
 
 interface GameLaunchProps {
   gameId: string
@@ -20,15 +19,15 @@ export default function GameLaunch({
   const [error, setError] = useState<string | null>(null)
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [gameUrl, setGameUrl] = useState<string | null>(null)
-  const [showLoginModal, setShowLoginModal] = useState(false)
   const { isAuthenticated, sessionToken } = useAuthStore()
 
   // Launch game function (memoized with useCallback)
   const launchGame = useCallback(async () => {
     if (!sessionToken) {
-      setError('Authentication required')
-      setLoading(false)
-      setShowLoginModal(true)
+      // Redirect to login page with return URL
+      // Use window.location to ensure full page redirect
+      const returnUrl = `/casino?game=${gameId}`
+      window.location.href = `/login?returnUrl=${encodeURIComponent(returnUrl)}`
       return
     }
 
@@ -50,14 +49,41 @@ export default function GameLaunch({
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        const errorMessage = errorData.error || 'Failed to launch game'
+        // Handle different error response formats
+        // Check for detailed error message from server
+        const errorMessage = errorData.message || 
+                           errorData.error?.message || 
+                           errorData.error || 
+                           errorData.message || 
+                           `Failed to launch game (${response.status})`
         
-        // If authentication error, show login modal
-        if (response.status === 401 || errorMessage.includes('Authentication')) {
-          setShowLoginModal(true)
-          throw new Error('Vous devez être connecté pour jouer')
+        // Log full error for debugging
+        console.error('Game launch error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          errorMessage,
+          // Include stack trace in development
+          ...(process.env.NODE_ENV === 'development' && errorData.stack && { stack: errorData.stack })
+        })
+        
+        // If authentication error, redirect to login
+        if (response.status === 401 || 
+            errorMessage.includes('Authentication') || 
+            errorMessage.includes('Unauthorized') ||
+            errorMessage.includes('authenticated')) {
+          const returnUrl = `/casino?game=${gameId}`
+          window.location.href = `/login?returnUrl=${encodeURIComponent(returnUrl)}`
+          return
         }
         
+        // Handle provider/currency errors with user-friendly messages
+        if (errorMessage.includes('provider is not enabled') || 
+            errorMessage.includes('currency is not enabled')) {
+          throw new Error('Ce jeu n\'est pas disponible actuellement. Veuillez essayer un autre jeu.')
+        }
+        
+        // Show detailed error message to user
         throw new Error(errorMessage)
       }
       
@@ -69,10 +95,14 @@ export default function GameLaunch({
       
       // Set the game URL from Slotegrator
       setGameUrl(data.gameUrl)
+      setLoading(false) // Stop loading when we have the URL
       console.log('Game launched successfully:', gameId, data.gameUrl)
     } catch (err) {
       console.error('Error launching game:', err)
-      setError(err instanceof Error ? err.message : 'Failed to launch game')
+      // Don't set error if we're redirecting (error will be null)
+      if (err instanceof Error && !err.message.includes('redirect')) {
+        setError(err.message)
+      }
       setLoading(false)
     }
   }, [gameId, sessionToken])
@@ -80,25 +110,16 @@ export default function GameLaunch({
   useEffect(() => {
     // Check if user is authenticated first
     if (!isAuthenticated || !sessionToken) {
-      setError('Authentication required')
-      setLoading(false)
-      setShowLoginModal(true)
+      // Redirect to login page with return URL
+      // Use window.location to ensure full page redirect and prevent component re-render issues
+      const returnUrl = `/casino?game=${gameId}`
+      window.location.href = `/login?returnUrl=${encodeURIComponent(returnUrl)}`
       return
     }
 
     // User is authenticated, launch the game
     launchGame()
   }, [gameId, isAuthenticated, sessionToken, launchGame])
-
-  // Watch for authentication changes (when user logs in)
-  useEffect(() => {
-    // If user just logged in and we have an error, retry launching
-    if (isAuthenticated && sessionToken && error && (error.includes('Authentication') || error.includes('connecté'))) {
-      setError(null)
-      setShowLoginModal(false)
-      launchGame()
-    }
-  }, [isAuthenticated, sessionToken, error, launchGame])
 
   const handleIframeLoad = () => {
     setLoading(false)
@@ -161,28 +182,11 @@ export default function GameLaunch({
           {error && (
             <div className="absolute inset-0 flex items-center justify-center bg-bg-secondary">
               <div className="text-center max-w-md px-6">
-                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <p className="text-text-primary text-lg mb-2">Connexion requise</p>
-                <p className="text-text-secondary mb-6">
-                  {error.includes('connecté') || error.includes('Authentication') 
-                    ? 'Vous devez être connecté pour jouer à ce jeu.'
-                    : error}
+                <Loader2 className="w-12 h-12 text-accent-primary animate-spin mx-auto mb-4" />
+                <p className="text-text-primary text-lg mb-2">Redirection...</p>
+                <p className="text-text-secondary">
+                  {error}
                 </p>
-                <div className="flex gap-3 justify-center">
-                  <button
-                    onClick={() => setShowLoginModal(true)}
-                    className="px-6 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 transition-colors flex items-center gap-2"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    Se connecter
-                  </button>
-                  <button
-                    onClick={onClose}
-                    className="px-6 py-2 bg-bg-tertiary text-text-primary rounded-lg hover:bg-bg-primary transition-colors"
-                  >
-                    Fermer
-                  </button>
-                </div>
               </div>
             </div>
           )}
@@ -199,21 +203,6 @@ export default function GameLaunch({
           )}
         </div>
       </div>
-
-      {/* Login Modal */}
-      {showLoginModal && (
-        <LoginModal
-          isOpen={showLoginModal}
-          onClose={() => {
-            setShowLoginModal(false)
-            // If user successfully logs in, the component will re-render and try to launch again
-            if (isAuthenticated && sessionToken) {
-              setError(null)
-              setLoading(true)
-            }
-          }}
-        />
-      )}
     </div>
   )
 }

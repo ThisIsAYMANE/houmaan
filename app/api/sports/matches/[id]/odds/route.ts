@@ -1,71 +1,93 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query } from '@/lib/db'
+import { getEventOdds } from '@/lib/odds-api'
+import { americanToDecimal } from '@/lib/odds-api'
 
+// Next.js route segment config for caching
+export const revalidate = 30 // Revalidate every 30 seconds
+
+/**
+ * GET /api/sports/matches/:id/odds
+ * 
+ * Get odds for a specific match from The Odds API
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const matchId = params.id
+    const searchParams = request.nextUrl.searchParams
+    const sportKey = searchParams.get('sportKey')
 
-    // Get match info
-    const match = await query(
-      `SELECT id, status, is_live FROM matches WHERE id = ?`,
-      [matchId]
-    )
-
-    if (match.rows.length === 0) {
+    // Check if Odds API is configured
+    if (!process.env.ODDS_API_KEY) {
       return NextResponse.json(
-        { error: 'Match not found' },
-        { status: 404 }
+        { 
+          error: 'Odds API not configured',
+          message: 'Please set ODDS_API_KEY in your .env file'
+        },
+        { status: 500 }
       )
     }
 
-    // Get betting markets and odds
-    const sql = `
-      SELECT 
-        bm.id as market_id,
-        bm.name as market_name,
-        bm.slug as market_slug,
-        bm.type as market_type,
-        o.id as odds_id,
-        o.selection,
-        o.odds_value,
-        o.previous_odds,
-        o.is_active
-      FROM betting_markets bm
-      LEFT JOIN odds o ON bm.id = o.market_id AND o.is_active = 1
-      WHERE bm.match_id = ? AND bm.is_active = 1
-      ORDER BY bm.type, o.selection
-    `
+    if (!sportKey) {
+      return NextResponse.json(
+        { error: 'sportKey query parameter is required' },
+        { status: 400 }
+      )
+    }
 
-    const result = await query(sql, [matchId])
+    // Fetch event odds from Odds API
+    const event = await getEventOdds(sportKey, matchId, {
+      regions: 'us',
+      markets: 'h2h,spreads,totals',
+      oddsFormat: 'american',
+    })
 
-    // Group odds by market
-    const marketsMap = new Map()
-    
-    for (const row of result.rows) {
-      const marketId = row.market_id
-      if (!marketsMap.has(marketId)) {
-        marketsMap.set(marketId, {
-          id: row.market_id,
-          name: row.market_name,
-          slug: row.market_slug,
-          type: row.market_type,
-          odds: []
-        })
-      }
+    // Transform Odds API format to our market format
+    const marketsMap = new Map<string, any>()
 
-      if (row.odds_id) {
-        marketsMap.get(marketId).odds.push({
-          id: row.odds_id,
-          selection: row.selection,
-          odds: row.odds_value,
-          previousOdds: row.previous_odds,
-          change: row.previous_odds 
-            ? (row.odds_value > row.previous_odds ? 'up' : row.odds_value < row.previous_odds ? 'down' : 'same')
-            : null
-        })
+    for (const bookmaker of event.bookmakers) {
+      for (const market of bookmaker.markets) {
+        const marketKey = market.key // 'h2h', 'spreads', 'totals'
+        
+        if (!marketsMap.has(marketKey)) {
+          // Map market keys to display names
+          const marketNames: Record<string, string> = {
+            'h2h': 'Match Result',
+            'spreads': 'Spreads',
+            'totals': 'Totals',
+          }
+
+          marketsMap.set(marketKey, {
+            id: marketKey,
+            name: marketNames[marketKey] || marketKey.toUpperCase(),
+            slug: marketKey,
+            type: marketKey,
+            odds: [],
+          })
+        }
+
+        // Add outcomes to market
+        for (const outcome of market.outcomes) {
+          const existingOdds = marketsMap.get(marketKey)!.odds.find(
+            (o: any) => o.selection === outcome.name
+          )
+
+          if (!existingOdds) {
+            // Convert American odds to decimal
+            const decimalOdds = americanToDecimal(outcome.price)
+            
+            marketsMap.get(marketKey)!.odds.push({
+              id: `${marketKey}-${outcome.name}`,
+              selection: outcome.name,
+              odds: decimalOdds,
+              point: outcome.point,
+              description: outcome.description,
+              bookmaker: bookmaker.title,
+            })
+          }
+        }
       }
     }
 
@@ -73,12 +95,29 @@ export async function GET(
 
     return NextResponse.json({
       matchId,
-      markets
+      markets,
+      event: {
+        id: event.id,
+        home_team: event.home_team,
+        away_team: event.away_team,
+        commence_time: event.commence_time,
+      },
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+      },
     })
   } catch (error) {
-    console.error('Error fetching odds:', error)
+    console.error('Error fetching odds from Odds API:', error)
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    
     return NextResponse.json(
-      { error: 'Failed to fetch odds' },
+      { 
+        error: 'Failed to fetch odds',
+        message: errorMessage,
+        matchId: params.id,
+      },
       { status: 500 }
     )
   }

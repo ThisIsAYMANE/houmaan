@@ -70,7 +70,19 @@ export async function GET() {
         })
 
         // Remove count and types from final result (not needed in response)
-        return sorted.map(({ count, types, ...rest }) => rest)
+        // Also ensure uniqueness by slug (in case of any edge cases)
+        const uniqueCategories = sorted.map(({ count, types, ...rest }) => rest)
+        
+        // Final deduplication by slug (shouldn't be needed, but safety check)
+        const seenSlugs = new Set<string>()
+        return uniqueCategories.filter(cat => {
+          if (seenSlugs.has(cat.slug)) {
+            console.warn(`Duplicate category slug detected: ${cat.slug}, skipping duplicate`)
+            return false
+          }
+          seenSlugs.add(cat.slug)
+          return true
+        })
       },
       3600000 // 1 hour TTL
     )

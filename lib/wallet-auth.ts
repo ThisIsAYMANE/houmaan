@@ -156,18 +156,21 @@ export async function getOrCreateWalletUser(
     [userId, walletAddress.toLowerCase()]
   )
 
+  // Get default currency from environment or use USD (most common for casinos)
+  const defaultCurrency = process.env.CASINO_DEFAULT_CURRENCY || 'USD'
+  
   // Create default profile
   await query(
     `INSERT INTO user_profiles (id, user_id, language, currency, theme)
-     VALUES (?, ?, 'fr', 'MAD', 'dark')`,
-    [nanoid(), userId]
+     VALUES (?, ?, 'fr', ?, 'dark')`,
+    [nanoid(), userId, defaultCurrency]
   )
 
   // Create default wallet
   await query(
     `INSERT INTO wallets (id, user_id, currency, balance)
-     VALUES (?, ?, 'MAD', 0)`,
-    [nanoid(), userId]
+     VALUES (?, ?, ?, 0)`,
+    [nanoid(), userId, defaultCurrency]
   )
 
   return userId

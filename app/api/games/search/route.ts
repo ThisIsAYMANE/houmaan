@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getGames, Game as SlotegratorGame } from '@/lib/casino-api'
+import { getGames, Game as SlotegratorGame, getEnabledProviders } from '@/lib/casino-api'
 import { mapTypeToCategorySlug } from '@/lib/category-mapping'
+import { getCachedData } from '@/lib/api-cache'
 
 // Convert provider name to slug
 function providerNameToSlug(name: string): string {
@@ -76,10 +77,39 @@ export async function GET(request: NextRequest) {
     // Fetch games from Slotegrator API
     const gamesResponse = await getGames({
       expand: 'images',
+      fetchAll: false,
+      maxPages: 20, // Limit search to 20 pages (1000 games) for performance
     })
 
-    // Map Slotegrator games to our format
-    let games = gamesResponse.items.map(mapSlotegratorGameToGame)
+    // Get enabled providers for the default currency (USD)
+    // This filters out games from providers that aren't enabled in the contract
+    const enabledProviders = await getCachedData(
+      'enabled-providers',
+      async () => {
+        const providers = await getEnabledProviders('USD')
+        return Array.from(providers)
+      },
+      3600000 // Cache for 1 hour
+    )
+    const enabledProvidersSet = new Set(enabledProviders)
+
+    // Map Slotegrator games to our format and filter by enabled providers
+    // Use case-insensitive matching for provider names
+    let games = gamesResponse.items
+      .filter(game => {
+        // Only include games from enabled providers
+        // If we can't determine enabled providers (empty set), show all games (fallback)
+        if (enabledProvidersSet.size === 0) {
+          return true // Fallback: show all games if we can't determine enabled providers
+        }
+        
+        // Case-insensitive provider matching
+        const gameProvider = game.provider.trim()
+        return Array.from(enabledProvidersSet).some(
+          enabledProvider => enabledProvider.toLowerCase() === gameProvider.toLowerCase()
+        )
+      })
+      .map(mapSlotegratorGameToGame)
 
     // Search in game name and provider name (case-insensitive)
     const searchLower = q.toLowerCase()

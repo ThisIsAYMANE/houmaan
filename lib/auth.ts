@@ -113,18 +113,21 @@ export async function createUser(data: {
         [userId, data.email, data.username || null, passwordHash, data.phone || null]
       )
 
+      // Get default currency from environment or use USD (most common for casinos)
+      const defaultCurrency = process.env.CASINO_DEFAULT_CURRENCY || 'USD'
+      
       // Create default profile
       await client.query(
         `INSERT INTO user_profiles (id, user_id, language, currency, theme)
-         VALUES ($1, $2, 'fr', 'MAD', 'dark')`,
-        [nanoid(), userId]
+         VALUES ($1, $2, 'fr', $3, 'dark')`,
+        [nanoid(), userId, defaultCurrency]
       )
 
       // Create default wallet
       await client.query(
         `INSERT INTO wallets (id, user_id, currency, balance)
-         VALUES ($1, $2, 'MAD', 0)`,
-        [nanoid(), userId]
+         VALUES ($1, $2, $3, 0)`,
+        [nanoid(), userId, defaultCurrency]
       )
     })
 

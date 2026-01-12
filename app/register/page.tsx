@@ -1,21 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense } from 'react'
 import { X } from 'lucide-react'
 import Link from 'next/link'
 import SignupForm from '@/components/auth/SignupForm'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter()
-  const [showModal, setShowModal] = useState(true)
+  const searchParams = useSearchParams()
+  const returnUrl = searchParams.get('returnUrl') || '/'
 
   const handleSuccess = () => {
-    router.push('/')
+    router.push(returnUrl)
   }
 
   const handleSwitchToLogin = () => {
-    router.push('/login')
+    // Preserve returnUrl when switching to login
+    const loginUrl = returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : '/login'
+    router.push(loginUrl)
   }
 
   return (
@@ -39,6 +42,21 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-primary"></div>
+          <p className="text-text-secondary mt-4">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <RegisterContent />
+    </Suspense>
   )
 }
 

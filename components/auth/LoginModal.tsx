@@ -13,12 +13,14 @@ interface LoginModalProps {
   isOpen: boolean
   onClose: () => void
   onSwitchToSignup?: () => void
+  onLoginSuccess?: () => void
 }
 
 export default function LoginModal({
   isOpen,
   onClose,
   onSwitchToSignup,
+  onLoginSuccess,
 }: LoginModalProps) {
   const [activeTab, setActiveTab] = useState<'password' | 'otp'>('password')
   const { setUser, setSession } = useAuthStore()
@@ -41,14 +43,31 @@ export default function LoginModal({
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error?.message || 'Login failed')
+        // Handle different error formats
+        const errorMessage = result.error?.message || 
+                           result.message || 
+                           (typeof result.error === 'string' ? result.error : 'Login failed')
+        throw new Error(errorMessage)
       }
 
-      setUser(result.data.user)
-      setSession(result.data.sessionToken)
-      toast.success('Connexion réussie!')
-      onClose()
+      // Check if result has data property (successResponse format)
+      if (result.success && result.data) {
+        setUser(result.data.user)
+        setSession(result.data.sessionToken)
+        toast.success('Connexion réussie!')
+        
+        // Call onLoginSuccess callback if provided (for redirects)
+        if (onLoginSuccess) {
+          onLoginSuccess()
+        } else {
+          onClose()
+        }
+      } else {
+        // Fallback if response format is different
+        throw new Error('Invalid response format from server')
+      }
     } catch (error) {
+      console.error('Login error:', error)
       toast.error(
         error instanceof Error ? error.message : 'Erreur lors de la connexion'
       )

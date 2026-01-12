@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, Star, ChevronUp, ChevronDown, Zap, Megaphone, Pin } from 'lucide-react'
 import BottomActionBar from '@/components/sports/BottomActionBar'
 import BetSlip from '@/components/sports/BetSlip'
-import { mockMatches } from '@/lib/mockData'
+// Removed mock data import - now using real Odds API data
 
 interface Match {
   id: string
@@ -206,12 +206,25 @@ export default function MatchDetailPage() {
 
   const fetchMatch = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500))
-      const matchData = mockMatches.find(m => m.id === matchId)
-      if (!matchData) {
-        throw new Error('Match not found')
+      setLoading(true)
+      setError(null)
+      
+      // Fetch match from API
+      const response = await fetch(`/api/sports/matches/${matchId}`)
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Match not found')
+        }
+        throw new Error('Failed to load match')
       }
-      setMatch(matchData as any)
+      
+      const data = await response.json()
+      if (data.match) {
+        setMatch(data.match)
+      } else {
+        throw new Error('Match data not available')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load match')
     } finally {
