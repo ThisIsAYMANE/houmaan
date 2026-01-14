@@ -63,3 +63,4 @@ export function mapTypeToCategorySlug(type: string): string {
   return dynamicSlug || 'other'
 }
 
+

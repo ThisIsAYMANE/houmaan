@@ -33,3 +33,4 @@ CREATE INDEX IF NOT EXISTS idx_casino_transactions_game_uuid ON casino_transacti
 CREATE INDEX IF NOT EXISTS idx_casino_transactions_action ON casino_transactions(action);
 CREATE INDEX IF NOT EXISTS idx_casino_transactions_created_at ON casino_transactions(created_at);
 
+
