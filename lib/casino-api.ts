@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { writeApiLog } from './file-logger'
 
 // ============================================
 // Types
@@ -193,28 +194,76 @@ async function makeCasinoRequest<T>(
     requestOptions.body = body
   }
 
+  // Log full request details for debugging
+  const requestLog = {
+    timestamp: new Date().toISOString(),
+    endpoint: `${method} ${endpoint}`,
+    fullUrl: url,
+    headers: {
+      ...headers,
+      // Don't log the full merchant key, but show it exists
+      'X-Merchant-Id': headers['X-Merchant-Id'],
+      'X-Timestamp': headers['X-Timestamp'],
+      'X-Nonce': headers['X-Nonce'],
+      'X-Sign': headers['X-Sign'] ? `${headers['X-Sign'].substring(0, 8)}...` : 'missing',
+    },
+    body: body || null,
+    params: requestParams || params || null,
+  }
+  console.log('[Casino API Request]', JSON.stringify(requestLog, null, 2))
+  // Write to file
+  writeApiLog('request', `${method} ${endpoint}`, requestLog)
+
   // Make request
   const response = await fetch(url, requestOptions)
+
+  // Get response headers
+  const responseHeaders: Record<string, string> = {}
+  response.headers.forEach((value, key) => {
+    responseHeaders[key] = value
+  })
+
+  // Read response body (we need to clone to read it without consuming)
+  const responseClone = response.clone()
+  let responseBody: any = null
+  let responseText: string = ''
+
+  try {
+    responseText = await responseClone.text()
+    try {
+      responseBody = JSON.parse(responseText)
+    } catch {
+      responseBody = responseText
+    }
+  } catch (error) {
+    console.warn('[Casino API] Could not read response body:', error)
+  }
+
+  // Log full response details
+  const responseLog = {
+    timestamp: new Date().toISOString(),
+    endpoint: `${method} ${endpoint}`,
+    status: response.status,
+    statusText: response.statusText,
+    headers: responseHeaders,
+    body: responseBody,
+    rawBody: responseText,
+  }
+  console.log('[Casino API Response]', JSON.stringify(responseLog, null, 2))
+  // Write to file
+  writeApiLog('response', `${method} ${endpoint}`, responseLog)
 
   // Handle errors
   if (!response.ok) {
     let errorMessage = `Casino API request failed: ${response.status} ${response.statusText}`
-    let errorDetails: any = {}
+    let errorDetails: any = responseBody || {}
     
-    try {
-      const errorData = await response.json()
-      errorMessage = errorData.message || errorData.name || errorData.error || errorMessage
-      errorDetails = errorData
-    } catch {
-      // If response is not JSON, try to get text
-      try {
-        const text = await response.text()
-        if (text) {
-          errorMessage = text
-        }
-      } catch {
-        // If we can't read the response, use default message
-      }
+    if (responseBody && typeof responseBody === 'object') {
+      errorMessage = responseBody.message || responseBody.name || responseBody.error || errorMessage
+      errorDetails = responseBody
+    } else if (responseText) {
+      errorMessage = responseText
+      errorDetails = { raw: responseText }
     }
 
     // Create a more detailed error
@@ -224,20 +273,27 @@ async function makeCasinoRequest<T>(
     ;(detailedError as any).statusText = response.statusText
     ;(detailedError as any).details = errorDetails
     ;(detailedError as any).endpoint = endpoint
+    ;(detailedError as any).requestLog = requestLog
+    ;(detailedError as any).responseLog = responseLog
     
-    console.error('Casino API error:', {
+    const errorLog = {
       endpoint,
       method,
       status: response.status,
       statusText: response.statusText,
       errorMessage,
       errorDetails,
-    })
+      request: requestLog,
+      response: responseLog,
+    }
+    console.error('[Casino API Error]', JSON.stringify(errorLog, null, 2))
+    // Write to file
+    writeApiLog('error', `${method} ${endpoint}`, errorLog)
     
     throw detailedError
   }
 
-  return response.json()
+  return responseBody as T
 }
 
 // ============================================
@@ -458,8 +514,12 @@ export async function getMerchantLimits(): Promise<MerchantLimit[]> {
 /**
  * Get enabled providers for a specific currency
  * 
+ * IMPORTANT: Providers are enabled PER CURRENCY. A provider enabled for EUR
+ * may not be enabled for USD. This function returns providers enabled for the
+ * specified currency only.
+ * 
  * @param currency - Currency code (e.g., 'USD', 'EUR')
- * @returns Set of enabled provider names (normalized for case-insensitive matching)
+ * @returns Set of enabled provider names for the specified currency
  */
 export async function getEnabledProviders(currency: string = 'USD'): Promise<Set<string>> {
   try {
@@ -469,23 +529,28 @@ export async function getEnabledProviders(currency: string = 'USD'): Promise<Set
     console.log(`[Provider Filter] Fetching enabled providers for currency: ${currency}`)
     console.log(`[Provider Filter] Limits response:`, JSON.stringify(limits, null, 2))
     
-    // Find limits for the specified currency and collect all providers
-    // Also collect providers from ALL currencies as fallback (some providers might be enabled for other currencies)
-    limits.forEach(limit => {
-      if (limit.providers && Array.isArray(limit.providers)) {
-        limit.providers.forEach(provider => {
-          // Normalize provider name for case-insensitive matching
-          // Store both original and normalized versions
-          enabledProviders.add(provider.trim())
-        })
-      }
-    })
+    // FIRST: Find limits for the SPECIFIC currency requested
+    const currencyLimits = limits.filter(limit => 
+      limit.currency && limit.currency.toUpperCase() === currency.toUpperCase()
+    )
     
-    // If no providers found for specific currency, try to get from all currencies
-    // This is a fallback - ideally we should match by currency, but if limits don't have currency-specific data,
-    // we'll use all providers as a safety measure
-    if (enabledProviders.size === 0 && limits.length > 0) {
-      console.warn(`[Provider Filter] No providers found for currency ${currency}, checking all currencies...`)
+    if (currencyLimits.length > 0) {
+      // Found limits for the requested currency
+      currencyLimits.forEach(limit => {
+        if (limit.providers && Array.isArray(limit.providers)) {
+          limit.providers.forEach(provider => {
+            enabledProviders.add(provider.trim())
+          })
+        }
+      })
+      console.log(`[Provider Filter] Found ${enabledProviders.size} providers enabled for ${currency}`)
+    } else {
+      // No limits found for requested currency
+      console.warn(`[Provider Filter] No providers found for currency ${currency}. Available currencies:`, 
+        limits.map(l => l.currency).filter(Boolean))
+      
+      // Fallback: collect from all currencies (but log warning)
+      // This is a fallback behavior - ideally we should match by currency
       limits.forEach(limit => {
         if (limit.providers && Array.isArray(limit.providers)) {
           limit.providers.forEach(provider => {
@@ -493,9 +558,10 @@ export async function getEnabledProviders(currency: string = 'USD'): Promise<Set
           })
         }
       })
+      console.warn(`[Provider Filter] Using fallback: collected ${enabledProviders.size} providers from all currencies`)
     }
     
-    console.log(`[Provider Filter] Found ${enabledProviders.size} enabled providers:`, Array.from(enabledProviders))
+    console.log(`[Provider Filter] Found ${enabledProviders.size} enabled providers for ${currency}:`, Array.from(enabledProviders))
     
     return enabledProviders
   } catch (error) {
@@ -503,6 +569,71 @@ export async function getEnabledProviders(currency: string = 'USD'): Promise<Set
     // Return empty set if we can't determine enabled providers
     // This means we'll show all games (fallback behavior)
     return new Set<string>()
+  }
+}
+
+// ============================================
+// Lobby
+// ============================================
+
+interface LobbyResponse {
+  lobby: {
+    lobbyData: string
+    name: string
+    isOpen: boolean
+    openTime?: string
+    closeTime?: string
+    dealerName?: string
+    dealerAvatar?: string
+    technology?: string
+    limits?: Array<{
+      currency: string
+      min: number
+      max: number
+    }> | {
+      currency: string
+      min: number
+      max: number
+    }
+    tableId?: string
+  }
+}
+
+/**
+ * GET /games/lobby - Get Lobby Tables
+ * 
+ * Returns list of tables for games with lobby.
+ * Required before calling /games/init for games with has_lobby === 1
+ * 
+ * @param gameUuid - Game UUID from /games
+ * @param currency - Player currency
+ * @param technology - Optional: "html5" or "flash"
+ */
+export async function getGameLobby(
+  gameUuid: string,
+  currency: string,
+  technology?: 'html5' | 'flash'
+): Promise<LobbyResponse> {
+  try {
+    const params: Record<string, string> = {
+      game_uuid: gameUuid,
+      currency,
+    }
+    
+    if (technology) {
+      params.technology = technology
+    }
+    
+    const response = await makeCasinoRequest<LobbyResponse>(
+      '/games/lobby',
+      'GET',
+      params
+    )
+    
+    return response
+  } catch (error) {
+    console.error('Error fetching game lobby:', error)
+    throw error
   }
 }
 

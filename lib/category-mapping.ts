@@ -64,3 +64,4 @@ export function mapTypeToCategorySlug(type: string): string {
 }
 
 
+

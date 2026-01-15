@@ -1,16 +1,87 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, User, Shield, Bell, Globe, Moon, Sun } from 'lucide-react'
 import LanguageModal from '@/components/settings/LanguageModal'
 import ThemeToggle from '@/components/settings/ThemeToggle'
 import { useAuthStore } from '@/stores/auth-store'
 
 export default function SettingsPage() {
-  const { user, isAuthenticated } = useAuthStore()
+  const { user, isAuthenticated, sessionToken } = useAuthStore()
   const [showLanguageModal, setShowLanguageModal] = useState(false)
   const [currentLanguage, setCurrentLanguage] = useState('fr')
   const [currentCurrency, setCurrentCurrency] = useState('MAD')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  // Load current profile on mount
+  useEffect(() => {
+    if (isAuthenticated && sessionToken) {
+      fetchProfile()
+    }
+  }, [isAuthenticated, sessionToken])
+
+  const fetchProfile = async () => {
+    try {
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${sessionToken}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        if (data.data?.profile) {
+          setCurrentLanguage(data.data.profile.language || 'fr')
+          setCurrentCurrency(data.data.profile.currency || 'MAD')
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+    }
+  }
+
+  const updateProfile = async (currency?: string, language?: string) => {
+    if (!sessionToken) {
+      setError('Not authenticated')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({
+          ...(currency && { currency }),
+          ...(language && { language }),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSuccess('Paramètres mis à jour avec succès')
+        if (currency) setCurrentCurrency(currency)
+        if (language) setCurrentLanguage(language)
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccess(null), 3000)
+      } else {
+        setError(data.error || 'Erreur lors de la mise à jour')
+      }
+    } catch (error) {
+      setError('Erreur lors de la mise à jour des paramètres')
+      console.error('Error updating profile:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -221,23 +292,34 @@ export default function SettingsPage() {
         </section>
       </div>
 
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50">
+          {success}
+        </div>
+      )}
+      {error && (
+        <div className="fixed top-20 right-4 bg-red-500 text-white px-4 py-2 rounded-md shadow-lg z-50">
+          {error}
+        </div>
+      )}
+
       <LanguageModal
         isOpen={showLanguageModal}
         onClose={() => setShowLanguageModal(false)}
         currentLanguage={currentLanguage}
         currentCurrency={currentCurrency}
         onLanguageChange={(lang) => {
-          setCurrentLanguage(lang)
-          // TODO: Save to API
+          updateProfile(undefined, lang)
         }}
         onCurrencyChange={(curr) => {
-          setCurrentCurrency(curr)
-          // TODO: Save to API
+          updateProfile(curr, undefined)
         }}
       />
     </div>
   )
 }
+
 
 
 
