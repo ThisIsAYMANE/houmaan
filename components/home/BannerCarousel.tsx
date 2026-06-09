@@ -8,8 +8,11 @@ interface Banner {
   id: string
   title: string
   description?: string
-  imageUrl: string
+  image_url?: string
+  imageUrl?: string
+  link_url?: string
   linkUrl?: string
+  button_text?: string
   buttonText?: string
   type: string
 }

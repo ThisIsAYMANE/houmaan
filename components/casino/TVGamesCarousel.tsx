@@ -61,35 +61,3 @@ export default function TVGamesCarousel({
 
 
 
-
-
-
-import { Tv, Users } from 'lucide-react'
-import GameCarousel from '@/components/games/GameCarousel'
-import GameCard from '@/components/games/GameCard'
-
-interface TVGame {
-  id: string
-  title: string
-  slug: string
-  thumbnail_url?: string
-  provider_name: string
-  provider_logo?: string
-  player_count?: number
-  multiplier?: number
-  is_new?: boolean
-  is_exclusive?: boolean
-  is_original?: boolean
-}
-
-interface TVGamesCarouselProps {
-  games: TVGame[]
-  onGameClick?: (gameId: string) => void
-}
-
-
-
-
-
-
-

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     const users = await query('SELECT id FROM users WHERE is_active = 1')
 
     let sent = 0
-    for (const user of users.rows || []) {
+    for (const user of users.rows as any[] || []) {
       const notificationId = nanoid()
       await query(
         `INSERT INTO notifications (id, user_id, type, title, message, data, is_read, created_at)

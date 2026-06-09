@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     let processed = 0
     let totalPaid = 0
 
-    for (const bet of bets.rows || []) {
+    for (const bet of bets.rows as any[] || []) {
       let betResult = 'lost'
       let payoutAmount = 0
 

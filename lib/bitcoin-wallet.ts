@@ -36,7 +36,7 @@ function generateRandomSeed(): string {
 /**
  * Get or create master wallet key
  */
-function getMasterKey(network: BitcoinNetwork = 'testnet'): bitcoin.BIP32Interface {
+function getMasterKey(network: BitcoinNetwork = 'testnet'): any {
   const seed = Buffer.from(MASTER_SEED, 'hex')
   const networkObj = network === 'mainnet' ? bitcoin.networks.bitcoin : bitcoin.networks.testnet
   

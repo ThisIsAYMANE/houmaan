@@ -11,7 +11,10 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, public fields?: Record<string, string>) {
+  constructor(
+    message: string,
+    public fields?: Record<string, string> | { path: (string | number)[]; message: string }[]
+  ) {
     super(message, 400, 'VALIDATION_ERROR')
     this.name = 'ValidationError'
   }

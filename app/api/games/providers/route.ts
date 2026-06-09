@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getGames } from '@/lib/casino-api'
+import { getGames, getEnabledProviders } from '@/lib/casino-api'
 import { successResponse, errorResponse } from '@/lib/api-response'
 import { getCachedData } from '@/lib/api-cache'
 
@@ -16,11 +16,9 @@ function providerNameToSlug(name: string): string {
 
 export async function GET() {
   try {
-    // Use shared cache with request deduplication
-    // Fetch more pages to ensure we get ALL unique providers from your games
-    // This ensures providers are tailored to YOUR actual game library
+    const currency = process.env.CASINO_DEFAULT_CURRENCY || 'USD'
     const providers = await getCachedData(
-      'providers',
+      `providers-filtered-${currency}`,
       async () => {
         // Fetch games from Slotegrator API
         // Fetch 30 pages (1500 games) to ensure we capture all unique providers
@@ -30,11 +28,23 @@ export async function GET() {
           maxPages: 30 // 30 pages = ~1500 games to get all unique providers
         })
 
-        // Extract unique providers from YOUR actual games
-        // This ensures providers are tailored to your game library
+        // Get enabled providers from the merchant's Slotegrator contract
+        // This ensures we only show providers whose games can actually be launched
+        const enabledProvidersSet = await getEnabledProviders(currency)
+        const hasEnabledList = enabledProvidersSet.size > 0
+
+        // Extract unique providers from YOUR actual games, filtered by enabled providers
         const providerMap = new Map<string, { id: string; name: string; slug: string; count: number }>()
         
         gamesResponse.items.forEach(game => {
+          // Skip games from providers not enabled in the contract
+          if (hasEnabledList) {
+            const isEnabled = Array.from(enabledProvidersSet).some(
+              ep => ep.toLowerCase() === game.provider.trim().toLowerCase()
+            )
+            if (!isEnabled) return
+          }
+
           if (providerMap.has(game.provider)) {
             // Increment count for this provider
             const existing = providerMap.get(game.provider)!

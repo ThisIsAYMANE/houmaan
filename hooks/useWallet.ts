@@ -1,13 +1,29 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ethers } from 'ethers'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+
+interface EthereumProvider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+  send?: (method: string, params?: unknown[]) => Promise<unknown>
+  isMetaMask?: boolean
+  isCoinbaseWallet?: boolean
+  selectedAddress?: string
+}
 
 interface WalletState {
   address: string | null
   isConnecting: boolean
-  provider: ethers.BrowserProvider | null
+  provider: EthereumProvider | null
+}
+
+function getEthereumProvider(): EthereumProvider | null {
+  if (typeof window === 'undefined') return null
+  return window.ethereum || null
+}
+
+function firstAccount(accounts: unknown): string | null {
+  return Array.isArray(accounts) && typeof accounts[0] === 'string' ? accounts[0] : null
 }
 
 export function useWallet() {
@@ -18,54 +34,47 @@ export function useWallet() {
   })
 
   useEffect(() => {
-    // Check if wallet is already connected (only if MetaMask is installed)
-    if (typeof window !== 'undefined' && window.ethereum?.isMetaMask) {
-      checkConnection()
-    }
+    checkConnection()
   }, [])
 
   const checkConnection = async () => {
-    // Only check if MetaMask is actually available
-    if (!window.ethereum?.isMetaMask) return
+    const provider = getEthereumProvider()
+    if (!provider) return
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      // Use send instead of listAccounts to avoid auto-connection
-      const accounts = await provider.send('eth_accounts', [])
-      
-      if (accounts && accounts.length > 0) {
-        const signer = await provider.getSigner()
-        const address = await signer.getAddress()
-        
+      const accounts = await provider.request({ method: 'eth_accounts' })
+      const address = firstAccount(accounts)
+
+      if (address) {
         setWalletState({
           address,
           isConnecting: false,
           provider,
         })
       }
-    } catch (error) {
-      // Silently fail - wallet might not be connected or available
-      // Don't log errors for missing wallets
+    } catch {
+      // Wallet may be locked, unavailable, or not authorized yet.
     }
   }
 
   const connectWallet = async (): Promise<string | null> => {
-    // Check if MetaMask is installed
-    if (typeof window === 'undefined' || !window.ethereum) {
-      toast.error('Aucun portefeuille détecté. Veuillez installer MetaMask ou un autre portefeuille compatible.')
+    const provider = getEthereumProvider()
+
+    if (!provider) {
+      toast.error('Aucun portefeuille detecte. Veuillez installer MetaMask ou un autre portefeuille compatible.')
       return null
     }
 
-    setWalletState(prev => ({ ...prev, isConnecting: true }))
+    setWalletState((prev) => ({ ...prev, isConnecting: true }))
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      
-      // Request account access (this will prompt the user)
-      await provider.send('eth_requestAccounts', [])
-      
-      const signer = await provider.getSigner()
-      const address = await signer.getAddress()
+      const accounts = await provider.request({ method: 'eth_requestAccounts' })
+      const address = firstAccount(accounts)
+
+      if (!address) {
+        setWalletState((prev) => ({ ...prev, isConnecting: false }))
+        return null
+      }
 
       setWalletState({
         address,
@@ -75,38 +84,36 @@ export function useWallet() {
 
       return address
     } catch (error: any) {
-      setWalletState(prev => ({ ...prev, isConnecting: false }))
-      
-      // Handle user rejection silently
-      if (error.code === 4001) {
-        // User rejected - don't show error, just return null
+      setWalletState((prev) => ({ ...prev, isConnecting: false }))
+
+      if (error?.code === 4001) {
         return null
       }
-      
-      // Only show error for actual connection failures
-      if (error.message?.includes('extension not found') || error.message?.includes('Failed to connect')) {
-        toast.error('MetaMask n\'est pas installé. Veuillez installer MetaMask pour continuer.')
-      } else {
-        toast.error('Erreur lors de la connexion au portefeuille')
-      }
-      
+
+      toast.error('Erreur lors de la connexion au portefeuille')
       return null
     }
   }
 
   const signMessage = async (message: string): Promise<string | null> => {
-    if (!walletState.provider || !walletState.address) {
-      toast.error('Portefeuille non connecté')
+    const provider = walletState.provider || getEthereumProvider()
+    const address = walletState.address || provider?.selectedAddress || null
+
+    if (!provider || !address) {
+      toast.error('Portefeuille non connecte')
       return null
     }
 
     try {
-      const signer = await walletState.provider.getSigner()
-      const signature = await signer.signMessage(message)
-      return signature
+      const signature = await provider.request({
+        method: 'personal_sign',
+        params: [message, address],
+      })
+
+      return typeof signature === 'string' ? signature : null
     } catch (error: any) {
-      if (error.code === 4001) {
-        toast.error('Signature refusée par l\'utilisateur')
+      if (error?.code === 4001) {
+        toast.error("Signature refusee par l'utilisateur")
       } else {
         toast.error('Erreur lors de la signature')
       }
@@ -130,16 +137,8 @@ export function useWallet() {
   }
 }
 
-// Extend Window interface for TypeScript
 declare global {
   interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>
-      send: (method: string, params?: any[]) => Promise<any>
-      isMetaMask?: boolean
-      isCoinbaseWallet?: boolean
-      selectedAddress?: string
-    }
+    ethereum?: EthereumProvider
   }
 }
-

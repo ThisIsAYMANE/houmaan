@@ -328,9 +328,9 @@ export async function getSyncStatus() {
     )
     
     return {
-      totalMatches: totalMatches.rows[0].count,
-      liveMatches: liveMatches.rows[0].count,
-      upcomingMatches: upcomingMatches.rows[0].count,
+      totalMatches: (totalMatches.rows[0] as any).count,
+      liveMatches: (liveMatches.rows[0] as any).count,
+      upcomingMatches: (upcomingMatches.rows[0] as any).count,
       apiConfigured: !!process.env.SPORTS_API_KEY,
     }
   } catch (error) {

@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     const rulesEngine = new BettingRulesEngine()
 
     // Prepare bet data for rules evaluation
-    const betData = {
+    const betData: Record<string, any> = {
       betType,
       selections,
       selectionCount: selections.length,

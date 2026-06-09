@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getGames } from '@/lib/casino-api'
+import { getGames, getEnabledProviders } from '@/lib/casino-api'
 import { successResponse, errorResponse } from '@/lib/api-response'
 import { getCachedData } from '@/lib/api-cache'
 import { mapTypeToCategorySlug } from '@/lib/category-mapping'
@@ -12,8 +12,9 @@ export async function GET() {
     // Use shared cache with request deduplication
     // Fetch more pages to ensure we get ALL unique categories from your games
     // Some categories (like live casino, table games) might appear later in pagination
+    const currency = process.env.CASINO_DEFAULT_CURRENCY || 'USD'
     const categories = await getCachedData(
-      'categories',
+      `categories-filtered-${currency}`,
       async () => {
         // Fetch games from Slotegrator API
         // Fetch 30 pages (1500 games) to ensure we capture all unique categories
@@ -23,30 +24,38 @@ export async function GET() {
           maxPages: 30 // 30 pages = ~1500 games to get all unique categories
         })
 
-        // Extract unique categories from YOUR actual games
-        // This ensures categories are tailored to your game library
-        // Group by slug to ensure no duplicate categories (multiple game types can map to same slug)
+        // Get enabled providers from the merchant's Slotegrator contract
+        // This ensures categories only contain games that can actually be launched
+        const enabledProvidersSet = await getEnabledProviders(currency)
+        const hasEnabledList = enabledProvidersSet.size > 0
+
+        // Extract unique categories from YOUR actual games, filtered by enabled providers
+        // Group by slug to ensure no duplicate categories
         const categoryMap = new Map<string, { id: string; name: string; slug: string; count: number; types: Set<string> }>()
         
         gamesResponse.items.forEach(game => {
+          // Skip games from providers not enabled in the contract
+          if (hasEnabledList) {
+            const isEnabled = Array.from(enabledProvidersSet).some(
+              ep => ep.toLowerCase() === game.provider.trim().toLowerCase()
+            )
+            if (!isEnabled) return
+          }
+
           const slug = mapTypeToCategorySlug(game.type)
-          // Use slug as key to group all game types that map to the same category
           
           if (categoryMap.has(slug)) {
-            // Increment count for this category
             const existing = categoryMap.get(slug)!
             existing.count++
             existing.types.add(game.type.trim())
           } else {
-            // Capitalize first letter of each word for display
-            // Use the first game type name as the display name
             const displayName = game.type
               .split(' ')
               .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
               .join(' ')
             
             categoryMap.set(slug, {
-              id: slug, // Use slug as id to ensure uniqueness (each unique slug gets one category)
+              id: slug,
               name: displayName,
               slug: slug,
               count: 1,

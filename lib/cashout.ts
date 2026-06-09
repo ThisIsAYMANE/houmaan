@@ -117,7 +117,7 @@ export async function calculateCashOut(betId: string): Promise<CashOutCalculatio
     }
 
     // Check if any match has finished
-    for (const sel of selections.rows) {
+    for (const sel of selections.rows as any[]) {
       if (sel.match_status === 'finished' || sel.match_status === 'cancelled') {
         return {
           available: false,
@@ -146,7 +146,7 @@ export async function calculateCashOut(betId: string): Promise<CashOutCalculatio
     let cashOutValue: number
 
     if (bet.bet_type === 'single') {
-      const sel = selections.rows[0]
+      const sel = selections.rows[0] as any
       // Simple ratio: stake * (current_odds / original_odds)
       const ratio = sel.current_odds / sel.original_odds
       cashOutValue = bet.amount * ratio

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { queryOne } from '@/lib/db'
+import { calculateXSign, getCasinoConfig } from '@/lib/casino-api'
 
 /**
  * POST /api/casino/self-validate
@@ -10,39 +11,39 @@ import { queryOne } from '@/lib/db'
  */
 export async function POST(request: NextRequest) {
   try {
-    const MERCHANT_ID = process.env.CASINO_MERCHANT_ID
-    const MERCHANT_KEY = process.env.CASINO_MERCHANT_KEY
-    const BASE_URL = process.env.CASINO_API_BASE_URL || 'https://staging.slotegrator.com/api/index.php/v1'
-
-    if (!MERCHANT_ID || !MERCHANT_KEY) {
+    let config: ReturnType<typeof getCasinoConfig>
+    try {
+      config = getCasinoConfig()
+    } catch {
       return NextResponse.json(
-        { error: 'Missing merchant credentials' },
-        { status: 500 }
+        { error: 'Missing merchant credentials', success: false },
+        { status: 200 }
       )
     }
 
-    // Generate auth headers
+    // Generate auth headers per Slotegrator spec
     const timestamp = Math.floor(Date.now() / 1000).toString()
     const nonce = crypto.randomBytes(16).toString('hex')
-    const body = {}
 
-    const signatureData = `${MERCHANT_ID}${timestamp}${nonce}${JSON.stringify(body)}`
-    const signature = crypto
-      .createHash('sha1')
-      .update(signatureData + MERCHANT_KEY)
-      .digest('hex')
+    const authHeaders: Record<string, string> = {
+      'X-Merchant-Id': config.merchantId,
+      'X-Timestamp': timestamp,
+      'X-Nonce': nonce,
+    }
 
-    // Call Slotegrator
-    const response = await fetch(`${BASE_URL}/self-validate`, {
+    // Calculate X-Sign over empty params (self-validate takes no body params)
+    const xSign = calculateXSign({}, authHeaders, config.merchantKey)
+
+    // Call Slotegrator self-validate
+    const response = await fetch(`${config.baseUrl}/self-validate`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-Merchant-Id': MERCHANT_ID,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Merchant-Id': config.merchantId,
         'X-Timestamp': timestamp,
         'X-Nonce': nonce,
-        'X-Sign': signature,
+        'X-Sign': xSign,
       },
-      body: JSON.stringify(body),
     })
 
     const data = await response.json()
@@ -51,8 +52,8 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Self-validate error:', error)
     return NextResponse.json(
-      { error: error.message || 'Self-validation failed' },
-      { status: 500 }
+      { error: error.message || 'Self-validation failed', success: false },
+      { status: 200 }
     )
   }
 }

@@ -105,7 +105,7 @@ async function runAPITests() {
     `${BASE_URL}/api/wallet/balance`
   )
   // This should FAIL (return 401), so passed=false means security is working
-  const securityWorking = !noAuthResult.passed && noAuthResult.error?.includes('401')
+    const securityWorking = !noAuthResult.passed && (noAuthResult.error?.includes('401') ?? false)
   results.push({
     name: 'Get Balance (No Auth)',
     passed: securityWorking,

@@ -43,6 +43,7 @@ interface Provider {
 
 function CasinoPageContent() {
   const searchParams = useSearchParams()
+  const filterParamsKey = searchParams.toString()
   const { isAuthenticated } = useAuthStore()
   const [selectedCategory, setSelectedCategory] = useState('lobby')
   const [selectedProvider, setSelectedProvider] = useState<string>('')
@@ -61,6 +62,18 @@ function CasinoPageContent() {
     fetchCategories()
     fetchProviders()
   }, [])
+
+  // Keep redirected legacy/list URLs in sync with the casino filters.
+  useEffect(() => {
+    const urlParams = new URLSearchParams(filterParamsKey)
+    const nextCategory = urlParams.get('category') || 'lobby'
+    const nextProvider = urlParams.get('provider') || ''
+    const nextSearch = urlParams.get('search') || ''
+
+    setSelectedCategory(nextCategory)
+    setSelectedProvider(nextProvider)
+    setSearchQuery(nextSearch)
+  }, [filterParamsKey])
 
   // Fetch games when category or provider changes
   useEffect(() => {

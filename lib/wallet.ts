@@ -336,7 +336,7 @@ export async function getTransactionHistory(
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       createdAt: new Date(row.created_at),
     })),
-    total: typeof total === 'number' ? total : parseInt(total.toString()),
+    total: typeof total === 'number' ? total : parseInt(String(total)),
   }
 }
 

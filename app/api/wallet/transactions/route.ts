@@ -78,8 +78,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get transaction history
-    const history = await getTransactionHistory(session.userId, validated.data)
+    // Get transaction history (convert null to undefined for type compatibility)
+    const params: any = { ...validated.data }
+    if (params.type === null) params.type = undefined
+    if (params.status === null) params.status = undefined
+    const history = await getTransactionHistory(session.userId, params)
 
     const response = successResponse(history)
     return addSecurityHeaders(response)

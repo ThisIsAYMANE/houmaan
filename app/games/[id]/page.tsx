@@ -248,7 +248,6 @@ export default function GameDetailPage() {
       {launching && game && (
         <GameLaunch
           gameId={game.id}
-          gameUrl={game.game_url}
           gameTitle={game.title}
           onClose={() => setLaunching(false)}
         />

@@ -21,7 +21,7 @@ async function safeQuery<T>(
         if (key === 'count' || key === 'total') {
           const value = converted[key]
           if (typeof value === 'string') {
-            converted[key] = Number(value) || 0
+            converted[key] = (Number(value) || 0) as any
           }
         }
       }

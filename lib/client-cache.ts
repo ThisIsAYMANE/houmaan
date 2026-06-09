@@ -54,7 +54,12 @@ export function setCachedData<T>(key: string, data: T, ttl: number = 3600000): v
     if (error instanceof DOMException && error.name === 'QuotaExceededError') {
       clearExpiredCache()
       try {
-        localStorage.setItem(key, JSON.stringify(entry))
+        const retryEntry: CacheEntry<T> = {
+          data,
+          timestamp: Date.now(),
+          ttl
+        }
+        localStorage.setItem(key, JSON.stringify(retryEntry))
       } catch (retryError) {
         console.error('Failed to cache after clearing expired items:', retryError)
       }

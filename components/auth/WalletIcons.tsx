@@ -1,16 +1,12 @@
 'use client'
 
 import React from 'react'
-import { 
-  WalletMetamask,
-  WalletCoinbase,
-  WalletPhantom,
-} from '@web3icons/react'
-import { 
-  SiWalletconnect,
-  SiBinance,
-} from 'react-icons/si'
-import { 
+import {
+  BadgeDollarSign,
+  Coins,
+  Flame,
+  Link,
+  Sparkles,
   Wallet,
 } from 'lucide-react'
 
@@ -19,81 +15,51 @@ interface WalletIconProps {
   className?: string
 }
 
-// Helper to extract size from className (e.g., "w-6 h-6" -> 24)
 const getSizeFromClassName = (className?: string): number => {
   if (!className) return 24
   const match = className.match(/w-(\d+)|h-(\d+)/)
   if (match) {
-    const size = parseInt(match[1] || match[2] || '24')
-    return size * 4 // Tailwind: w-6 = 24px
+    const size = parseInt(match[1] || match[2] || '6', 10)
+    return size * 4
   }
   return 24
 }
 
-// Professional wallet icons using @web3icons/react
-export function WalletIcon({ name, className = 'w-6 h-6' }: WalletIconProps) {
-  const size = getSizeFromClassName(className)
-  
-  const iconMap: Record<string, React.ReactNode> = {
-    MetaMask: <WalletMetamask size={size} className={className} />,
-    WalletConnect: <SiWalletconnect size={size} className={className} style={{ color: '#3B99FC' }} />,
-    Coinbase: <WalletCoinbase size={size} className={className} />,
-    TrustWallet: <Wallet size={size} className={className} style={{ color: '#3375BB' }} />,
-    Binance: <SiBinance size={size} className={className} style={{ color: '#F3BA2F' }} />,
-    Phantom: <WalletPhantom size={size} className={className} />,
-    Solflare: <Wallet className={className} style={{ color: '#14F195' }} />,
+function iconForWallet(name: string) {
+  switch (name) {
+    case 'MetaMask':
+      return { Icon: Flame, color: '#f6851b', bg: 'bg-orange-500/15' }
+    case 'WalletConnect':
+      return { Icon: Link, color: '#3b99fc', bg: 'bg-blue-500/15' }
+    case 'Coinbase':
+      return { Icon: BadgeDollarSign, color: '#2f6df6', bg: 'bg-blue-600/15' }
+    case 'TrustWallet':
+      return { Icon: Wallet, color: '#3375bb', bg: 'bg-sky-500/15' }
+    case 'Binance':
+      return { Icon: Coins, color: '#f3ba2f', bg: 'bg-yellow-500/15' }
+    case 'Phantom':
+      return { Icon: Sparkles, color: '#ab9ff2', bg: 'bg-purple-500/15' }
+    case 'Solflare':
+      return { Icon: Sparkles, color: '#14f195', bg: 'bg-emerald-500/15' }
+    default:
+      return { Icon: Wallet, color: '#9ca3af', bg: 'bg-gray-500/15' }
   }
-
-  return iconMap[name] || (
-    <Wallet className={className} />
-  )
 }
 
-// Enhanced wallet icons with better styling
+export function WalletIcon({ name, className = 'w-6 h-6' }: WalletIconProps) {
+  const size = getSizeFromClassName(className)
+  const { Icon, color } = iconForWallet(name)
+
+  return <Icon size={size} className={className} style={{ color }} />
+}
+
 export function SimpleWalletIcon({ name, className = 'w-6 h-6' }: WalletIconProps) {
   const size = getSizeFromClassName(className)
-  
-  const iconMap: Record<string, React.ReactNode> = {
-    MetaMask: (
-      <div className={`${className} flex items-center justify-center`}>
-        <WalletMetamask size={size} />
-      </div>
-    ),
-    WalletConnect: (
-      <div className={`${className} flex items-center justify-center`}>
-        <SiWalletconnect size={size} style={{ color: '#3B99FC' }} />
-      </div>
-    ),
-    Coinbase: (
-      <div className={`${className} flex items-center justify-center`}>
-        <WalletCoinbase size={size} />
-      </div>
-    ),
-    TrustWallet: (
-      <div className={`${className} flex items-center justify-center rounded-full bg-blue-600`}>
-        <Wallet size={size * 0.7} className="text-white" />
-      </div>
-    ),
-    Binance: (
-      <div className={`${className} flex items-center justify-center`}>
-        <SiBinance size={size} style={{ color: '#F3BA2F' }} />
-      </div>
-    ),
-    Phantom: (
-      <div className={`${className} flex items-center justify-center`}>
-        <WalletPhantom size={size} />
-      </div>
-    ),
-    Solflare: (
-      <div className={`${className} flex items-center justify-center rounded-full bg-green-500`}>
-        <Wallet className="w-4 h-4 text-white" />
-      </div>
-    ),
-  }
+  const { Icon, color, bg } = iconForWallet(name)
 
-  return iconMap[name] || (
-    <div className={`${className} flex items-center justify-center rounded-full bg-gray-600`}>
-      <Wallet className="w-4 h-4 text-white" />
+  return (
+    <div className={`${className} ${bg} flex items-center justify-center rounded-full`}>
+      <Icon size={Math.max(14, size * 0.68)} style={{ color }} />
     </div>
   )
 }

@@ -844,3 +844,104 @@ export async function initializeGameSession(
     throw error
   }
 }
+
+/**
+ * Initialize a self-validation session
+ *
+ * Calls POST /init (dedicated self-validation endpoint) instead of /games/init.
+ * This is required by Slotegrator for /self-validate to find the active session.
+ *
+ * @param gameId - Game UUID from Slotegrator
+ * @param userId - User ID on integrator side (supports bot player if provided)
+ * @param balance - Player balance (for validation)
+ * @param options - Additional options
+ */
+export async function initializeSelfValidationSession(
+  gameId: string,
+  userId: string,
+  balance: number,
+  options?: {
+    playerName?: string
+    currency?: string
+    language?: string
+    email?: string
+    device?: 'desktop' | 'mobile'
+    returnUrl?: string
+    lobbyData?: string
+  }
+): Promise<GameSessionInitResponse> {
+  try {
+    // Generate unique session ID
+    const sessionId = `session_${userId}_${Date.now()}_${Math.random().toString(36).substring(7)}`
+
+    // Try to get user info from DB, but don't fail if not found (self-validate users may not exist)
+    let email = options?.email || 'test@example.com'
+    let playerName = options?.playerName || 'TestPlayer'
+    let currency = options?.currency || 'EUR'
+    let language = options?.language || 'en'
+
+    try {
+      const { queryOne } = await import('@/lib/db')
+      const user = await queryOne<{ email: string; username: string | null }>(
+        'SELECT email, username FROM users WHERE id = ?',
+        [userId]
+      )
+      if (user) {
+        email = options?.email || user.email
+        playerName = options?.playerName || user.username || playerName
+        const profile = await queryOne<{ currency: string; language: string }>(
+          'SELECT currency, language FROM user_profiles WHERE user_id = ?',
+          [userId]
+        )
+        if (profile) {
+          currency = options?.currency || profile.currency || currency
+          language = options?.language || profile.language || language
+        }
+      }
+    } catch {
+      // DB might not be available, use defaults
+    }
+
+    // Prepare parameters for /init (self-validation endpoint)
+    const params: InitGameParams = {
+      game_uuid: gameId,
+      player_id: userId,
+      player_name: playerName,
+      currency,
+      session_id: sessionId,
+      device: options?.device || 'desktop',
+      return_url:
+        options?.returnUrl ||
+        process.env.CASINO_TEST_AREA_URL ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        'http://localhost:3000',
+      language,
+      email,
+    }
+
+    if (options?.lobbyData) {
+      params.lobby_data = options.lobbyData
+    }
+
+    // Call POST /init (NOT /games/init - this is the dedicated self-validation endpoint)
+    const response = await makeCasinoRequest<InitGameResponse>(
+      '/init',
+      'POST',
+      undefined,
+      params
+    )
+
+    if (!response.url) {
+      throw new Error('No game URL returned from Slotegrator /init')
+    }
+
+    return {
+      sessionId,
+      gameUrl: response.url,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    }
+  } catch (error) {
+    console.error('Error initializing self-validation session:', error)
+    throw error
+  }
+}

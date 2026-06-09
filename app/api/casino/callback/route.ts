@@ -102,29 +102,27 @@ export async function POST(request: NextRequest) {
     const receivedSign = request.headers.get('X-Sign') || ''
 
     // ========== X-SIGN VALIDATION FOR BOT ==========
-    // Build params object for signature validation
-    const botParams: CallbackParams = {
-      action: (formData.get('action') as string) || '',
-      player_id: player_id,
-      currency: (formData.get('currency') as string) || '',
-      session_id: session_id || undefined,
-      game_uuid: (formData.get('game_uuid') as string) || undefined,
-      transaction_id: transaction_id || undefined,
-      amount: amountStr || undefined,
-      type: (formData.get('type') as string) || undefined,
-      freespin_id: (formData.get('freespin_id') as string) || undefined,
-      quantity: (formData.get('quantity') as string) || undefined,
-      round_id: (formData.get('round_id') as string) || undefined,
-      finished: (formData.get('finished') as string) || undefined,
-      bet_transaction_id: (formData.get('bet_transaction_id') as string) || undefined,
-      rollback_transactions: (formData.get('rollback_transactions') as string) || undefined,
+    // Build params object ONLY from fields actually present in the form data
+    // CRITICAL: Including absent fields as empty strings pollutes the X-Sign hash
+    const callbackFields = [
+      'action', 'player_id', 'currency', 'session_id', 'game_uuid',
+      'transaction_id', 'amount', 'type', 'freespin_id', 'quantity',
+      'round_id', 'finished', 'bet_transaction_id', 'rollback_transactions',
+      'provider_round_id', 'transaction_datetime', 'casino_request_retry_count',
+    ]
+    // Capture ALL form fields for signature validation (including rollback array notation fields)
+    const botParams: Record<string, string> = {}
+    for (const [key, value] of formData.entries()) {
+      if (typeof value === 'string' && value.length > 0) {
+        botParams[key] = value
+      }
     }
 
     // Validate signature for bot player
     if (player_id === botID && receivedSign) {
       const config = getCasinoConfig()
       const isValid = validateXSign(
-        botParams as Record<string, any>,
+        botParams,
         allHeaders,
         receivedSign,
         config.merchantKey
@@ -221,10 +219,13 @@ export async function POST(request: NextRequest) {
           // FIX 4: Store the generated ID for this transaction
           txTypeMap.set('tx_id_' + transaction_id, internal_tid as any)
           // KEY RULE: Only restore balance if the refunded tx was a BET, not a WIN.
-          if (bet_tx_id && botBetTxIds.has(bet_tx_id) && !botRefundedBetTxIds.has(bet_tx_id)) {
+          // Use txTypeMap to verify the original action, not just botBetTxIds set
+          if (bet_tx_id && txTypeMap.get(bet_tx_id) === 'bet' && !botRefundedBetTxIds.has(bet_tx_id)) {
             botState.balance += amount
             botRefundedBetTxIds.add(bet_tx_id)
           }
+          txTypeMap.set(transaction_id, 'refund')
+          txDetails.set(transaction_id, { action: 'refund', amount, round_id: undefined })
         } else {
           // DUPLICATE - return the same transaction_id as original (FIX 4)
           const storedTxId = txTypeMap.get('tx_id_' + transaction_id)
@@ -321,6 +322,10 @@ export async function POST(request: NextRequest) {
             botState.balance = Number(botState.balance.toFixed(2))
             console.log(`[BOT ROLLBACK] Final balance: ${botState.balance}`)
 
+            // Store mapping for duplicate rollback responses
+            txReturnedBalances.set(transaction_id, botState.balance)
+            txTypeMap.set('tx_id_' + transaction_id, internal_tid as any)
+
             return NextResponse.json({
               balance: botState.balance,
               transaction_id: internal_tid,
@@ -357,19 +362,13 @@ export async function POST(request: NextRequest) {
               }
             }
 
-            // Calculate balance before round for duplicate response
-            let balanceBeforeRound = 1000.0
-            if (rbTxs.length > 0) {
-              const firstRbTxId = rbTxs[0].transaction_id
-              const firstRbTxDetails = txDetails.get(firstRbTxId)
-              if (firstRbTxDetails && firstRbTxDetails.round_id) {
-                balanceBeforeRound = roundStartBalances.get(firstRbTxDetails.round_id) ?? 1000.0
-              }
-            }
+            // For duplicate, return the SAME balance and transaction_id as the original
+            const storedTxId = txTypeMap.get('tx_id_' + transaction_id)
+            const originalBalance = txReturnedBalances.get(transaction_id)
 
             return NextResponse.json({
-              balance: Number(balanceBeforeRound.toFixed(2)),
-              transaction_id: internal_tid,
+              balance: Number((originalBalance ?? botState.balance).toFixed(2)),
+              transaction_id: storedTxId || internal_tid,
               rollback_transactions: rbTxs.map((t: any) => t.transaction_id),
             })
           } catch (e) {
@@ -382,26 +381,19 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-    const params: CallbackParams = {
-      action: (formData.get('action') as string) || '',
-      player_id: (formData.get('player_id') as string) || '',
-      currency: (formData.get('currency') as string) || '',
-      session_id: (formData.get('session_id') as string) || undefined,
-      game_uuid: (formData.get('game_uuid') as string) || undefined,
-      transaction_id: (formData.get('transaction_id') as string) || undefined,
-      amount: (formData.get('amount') as string) || undefined,
-      type: (formData.get('type') as string) || undefined,
-      freespin_id: (formData.get('freespin_id') as string) || undefined,
-      quantity: (formData.get('quantity') as string) || undefined,
-      round_id: (formData.get('round_id') as string) || undefined,
-      finished: (formData.get('finished') as string) || undefined,
-      bet_transaction_id: (formData.get('bet_transaction_id') as string) || undefined,
-      rollback_transactions: (formData.get('rollback_transactions') as string) || undefined,
-      provider_round_id: (formData.get('provider_round_id') as string) || undefined,
-      transaction_datetime: (formData.get('transaction_datetime') as string) || undefined,
-      casino_request_retry_count:
-        (formData.get('casino_request_retry_count') as string) || undefined,
+    // Build params object ONLY from fields actually present in form data
+    // (same dynamic approach used for bot path to avoid X-Sign hash pollution)
+    // Capture ALL form fields for X-Sign validation.
+    // This is critical for rollback requests where rollback_transactions is sent
+    // as array-notation form fields (e.g. rollback_transactions[0][action]=bet)
+    // which are NOT captured by a predefined field list.
+    const params: Record<string, string> = {}
+    for (const [key, value] of formData.entries()) {
+      if (typeof value === 'string' && value.length > 0) {
+        params[key] = value
+      }
     }
+    const typedParams = params as unknown as CallbackParams
 
     // Validate required fields
     if (!params.action || !params.player_id || !params.currency) {
@@ -417,7 +409,7 @@ export async function POST(request: NextRequest) {
     // Validate X-Sign using the headers already captured above
     const config = getCasinoConfig()
     const isValid = validateXSign(
-      params as Record<string, any>,
+      params,
       allHeaders,
       receivedSign,
       config.merchantKey
@@ -442,17 +434,44 @@ export async function POST(request: NextRequest) {
     }
 
     // Route to appropriate handler based on action
+    // Special handling for rollback: reconstruct rollback_transactions from
+    // array-notation form fields (rollback_transactions[0][action]=bet, etc.)
+    // Slotegrator sends rollback_transactions as PHP array notation in form body.
+    if (params.action === 'rollback') {
+      // Check if rollback_transactions is missing (array-notation form fields)
+      if (!params['rollback_transactions']) {
+        const rbTxs: Array<{ action: string; amount: string; transaction_id: string; type?: string }> = []
+        let idx = 0
+        while (true) {
+          const rbAction = params[`rollback_transactions[${idx}][action]`]
+          if (!rbAction) break
+          rbTxs.push({
+            action: rbAction,
+            amount: params[`rollback_transactions[${idx}][amount]`] || '0',
+            transaction_id: params[`rollback_transactions[${idx}][transaction_id]`] || '',
+            type: params[`rollback_transactions[${idx}][type]`] || rbAction,
+          })
+          idx++
+        }
+        if (rbTxs.length > 0) {
+          // Inject as JSON string so handleRollback can parse it
+          params['rollback_transactions'] = JSON.stringify(rbTxs)
+        }
+      }
+      return await handleRollback(params as unknown as CallbackParams)
+    }
+
     switch (params.action) {
       case 'balance':
-        return await handleBalance(params)
+        return await handleBalance(typedParams)
       case 'bet':
-        return await handleBet(params)
+        return await handleBet(typedParams)
       case 'win':
-        return await handleWin(params)
+        return await handleWin(typedParams)
       case 'refund':
-        return await handleRefund(params)
+        return await handleRefund(typedParams)
       case 'rollback':
-        return await handleRollback(params)
+        return await handleRollback(typedParams)
       default:
         return new NextResponse(
           JSON.stringify({
@@ -578,8 +597,9 @@ async function handleBet(params: CallbackParams) {
     )
   }
 
-  const balanceBefore = wallet.balance
-  const balanceAfter = balanceBefore - betAmount
+  // Round to 2 decimal places to prevent floating-point drift across transactions
+  const balanceBefore = Number(wallet.balance.toFixed(2))
+  const balanceAfter = Number((balanceBefore - betAmount).toFixed(2))
 
   // Check sufficient funds
   if (balanceAfter < 0) {
@@ -592,7 +612,7 @@ async function handleBet(params: CallbackParams) {
     )
   }
 
-  // Update wallet balance
+  // Update wallet balance (always store rounded value to prevent drift)
   await query(
     'UPDATE wallets SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND currency = ?',
     [balanceAfter, player_id, currency]
@@ -641,7 +661,7 @@ async function handleBet(params: CallbackParams) {
   )
 
   return NextResponse.json({
-    balance: Number(balanceAfter),
+    balance: Number(balanceAfter.toFixed(2)),
     transaction_id: casinoTxId, // Return OUR unique internal ID, not Slotegrator's
   })
 }
@@ -707,8 +727,9 @@ async function handleWin(params: CallbackParams) {
     )
   }
 
-  const balanceBefore = wallet.balance
-  const balanceAfter = balanceBefore + winAmount
+  // Round to 2 decimal places to prevent floating-point drift
+  const balanceBefore = Number(wallet.balance.toFixed(2))
+  const balanceAfter = Number((balanceBefore + winAmount).toFixed(2))
 
   // Update wallet balance
   await query(
@@ -759,7 +780,7 @@ async function handleWin(params: CallbackParams) {
   )
 
   return NextResponse.json({
-    balance: Number(balanceAfter),
+    balance: Number(balanceAfter.toFixed(2)),
     transaction_id: casinoTxId, // Return OUR unique ID
   })
 }
@@ -868,7 +889,8 @@ async function handleRefund(params: CallbackParams) {
     )
   }
 
-  const balanceBefore = wallet.balance
+  // Round to 2 decimal places to prevent floating-point drift
+  const balanceBefore = Number(wallet.balance.toFixed(2))
   // For a refund: check if the original transaction exists
   const originalBetTx = bet_transaction_id
     ? await queryOne<{ action: string; amount: number }>(
@@ -884,7 +906,7 @@ async function handleRefund(params: CallbackParams) {
 
   if (originalBetTx && originalBetTx.action === 'bet') {
     // This is a refund of a BET - credit the amount back
-    balanceAfter = balanceBefore + refundAmount
+    balanceAfter = Number((balanceBefore + refundAmount).toFixed(2))
   } else if (!originalBetTx && bet_transaction_id) {
     // Original transaction doesn't exist - don't modify balance per Slotegrator docs
     balanceAfter = balanceBefore
@@ -945,7 +967,7 @@ async function handleRefund(params: CallbackParams) {
   )
 
   return NextResponse.json({
-    balance: Number(balanceAfter),
+    balance: Number(balanceAfter.toFixed(2)),
     transaction_id: casinoTxId, // OUR ID
   })
 }
@@ -1035,7 +1057,8 @@ async function handleRollback(params: CallbackParams) {
     )
   }
 
-  let balanceBefore = wallet.balance
+  // Round to 2 decimal places to prevent floating-point drift
+  let balanceBefore = Number(wallet.balance.toFixed(2))
   let balanceAfter = balanceBefore
   const processedRollbackIds: string[] = []
 
@@ -1052,9 +1075,9 @@ async function handleRollback(params: CallbackParams) {
     ])
 
     if (originalTx) {
-      if (originalTx.action === 'bet') balanceAfter += txAmount
-      else if (originalTx.action === 'win') balanceAfter -= txAmount
-      else if (originalTx.action === 'refund') balanceAfter -= txAmount
+      if (originalTx.action === 'bet') balanceAfter = Number((balanceAfter + txAmount).toFixed(2))
+      else if (originalTx.action === 'win') balanceAfter = Number((balanceAfter - txAmount).toFixed(2))
+      else if (originalTx.action === 'refund') balanceAfter = Number((balanceAfter - txAmount).toFixed(2))
 
       await query('UPDATE casino_transactions SET status = ? WHERE transaction_id = ?', [
         'reversed',
@@ -1066,10 +1089,11 @@ async function handleRollback(params: CallbackParams) {
     }
   }
 
-  // Update wallet balance
+  // Update wallet balance (store rounded value to prevent drift)
+  const finalBalance = Number(balanceAfter.toFixed(2))
   await query(
     'UPDATE wallets SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND currency = ?',
-    [balanceAfter, player_id, currency]
+    [finalBalance, player_id, currency]
   )
 
   const casinoTxId = nanoid()
@@ -1083,17 +1107,17 @@ async function handleRollback(params: CallbackParams) {
       player_id,
       session_id,
       game_uuid,
-      balanceAfter - balanceBefore,
+      Number((finalBalance - balanceBefore).toFixed(2)),
       currency,
       balanceBefore,
-      balanceAfter,
+      finalBalance,
       round_id || null,
       JSON.stringify({ rollback_transactions: processedRollbackIds }),
     ]
   )
 
   return NextResponse.json({
-    balance: Number(balanceAfter),
+    balance: finalBalance,
     transaction_id: casinoTxId,
     rollback_transactions: processedRollbackIds,
   })

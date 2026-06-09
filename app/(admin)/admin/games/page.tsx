@@ -14,8 +14,8 @@ interface Game {
   category_name: string
   thumbnail_url: string
   is_active: boolean
-  category_id?: string
-  provider_id?: string
+  category_id: string
+  provider_id: string
 }
 
 export default function GamesPage() {

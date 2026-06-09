@@ -10,7 +10,7 @@ import SportsSearch from '@/components/sports/SportsSearch'
 import { Trophy, Activity, Crown, Radio, Zap, Target } from 'lucide-react'
 // Removed mock data import - now using real Odds API data
 
-interface Match {
+interface SportsMatch {
   id: string
   home_team: string
   away_team: string
@@ -103,7 +103,7 @@ export default function SportsPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'highlights' | 'program' | 'stream'>('highlights')
   const [selectedSport, setSelectedSport] = useState<string | null>(null)
-  const [matches, setMatches] = useState<Match[]>([])
+  const [matches, setMatches] = useState<SportsMatch[]>([])
   const [sports, setSports] = useState<Sport[]>(defaultSports)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -353,7 +353,7 @@ export default function SportsPage() {
                 <h2 className="text-xl font-bold text-text-primary">En Live</h2>
               </div>
               <LiveMatchesCarousel
-                matches={liveMatches}
+                matches={liveMatches as any}
                 odds={matchesWithOdds}
                 onOddsClick={handleOddsClick}
                 onMatchClick={handleMatchClick}
@@ -405,7 +405,7 @@ export default function SportsPage() {
               {popularMatches.map((match) => (
                 <LiveMatchCard
                   key={match.id}
-                  match={match}
+                  match={match as any}
                   odds={matchesWithOdds[match.id] || []}
                   onOddsClick={handleOddsClick}
                   onWatch={handleMatchClick}
@@ -425,7 +425,7 @@ export default function SportsPage() {
                 {upcomingMatches.map((match) => (
                   <LiveMatchCard
                     key={match.id}
-                    match={match}
+                    match={match as any}
                     odds={matchesWithOdds[match.id] || []}
                     onOddsClick={handleOddsClick}
                     onWatch={handleMatchClick}

@@ -3,6 +3,8 @@ import { query } from './db'
 import { nanoid } from 'nanoid'
 import { createSession } from './auth'
 
+export { createSession }
+
 // Generate a nonce for wallet signature
 export async function generateNonce(walletAddress: string): Promise<string> {
   const nonce = nanoid(32)
