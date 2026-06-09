@@ -3,6 +3,7 @@
  * Generates real Bitcoin addresses using HD wallet (BIP32/BIP44)
  */
 
+import crypto from 'crypto'
 import * as bitcoin from 'bitcoinjs-lib'
 import { BIP32Factory } from 'bip32'
 import * as ecc from 'tiny-secp256k1'
@@ -29,7 +30,6 @@ const MASTER_SEED = process.env.BITCOIN_MASTER_SEED || generateRandomSeed()
 function generateRandomSeed(): string {
   // Generate a random 32-byte seed (64 hex characters)
   // Use Node.js crypto module
-  const crypto = require('crypto')
   return crypto.randomBytes(32).toString('hex')
 }
 

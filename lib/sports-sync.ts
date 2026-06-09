@@ -282,7 +282,7 @@ export async function syncSportsData(): Promise<{
 }> {
   const errors: string[] = []
   let matchesSynced = 0
-  let oddsSynced = 0
+  const oddsSynced = 0
   
   try {
     // Fetch and sync live matches

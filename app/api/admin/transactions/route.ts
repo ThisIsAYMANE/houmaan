@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit
 
     // Build WHERE conditions
-    let conditions: string[] = []
-    let params: any[] = []
+    const conditions: string[] = []
+    const params: any[] = []
 
     // Filter by transaction type
     if (type && type !== 'all') {
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query for wallet transactions
-    let whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''
     
     // Get transactions from deposits, withdrawals, and wallet_transactions
     const transactionsQuery = `
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     `
 
     // Build params array based on filters
-    let queryParams: any[] = []
+    const queryParams: any[] = []
     
     // Deposit status filter
     if ((type === 'deposit' || !type || type === 'all') && status && status !== 'all') {
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
       ) as all_transactions
     `
 
-    let countParams: any[] = []
+    const countParams: any[] = []
     if ((type === 'deposit' || !type || type === 'all') && status && status !== 'all') {
       countParams.push(status)
     }

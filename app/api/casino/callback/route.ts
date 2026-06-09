@@ -49,10 +49,10 @@ interface CallbackParams {
 let botState = { balance: 1000.0, transactions: new Set<string>() }
 let botBetTxIds = new Set<string>()
 let botRefundedBetTxIds = new Set<string>()
-let txTypeMap = new Map<string, 'bet' | 'win' | 'refund'>()
-let txDetails = new Map<string, { action: string; amount: number; round_id?: string }>()
-let roundStartBalances = new Map<string, number>()
-let txReturnedBalances = new Map<string, number>() // round_id -> balance at start of round
+const txTypeMap = new Map<string, 'bet' | 'win' | 'refund'>()
+const txDetails = new Map<string, { action: string; amount: number; round_id?: string }>()
+const roundStartBalances = new Map<string, number>()
+const txReturnedBalances = new Map<string, number>() // round_id -> balance at start of round
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
@@ -1058,7 +1058,7 @@ async function handleRollback(params: CallbackParams) {
   }
 
   // Round to 2 decimal places to prevent floating-point drift
-  let balanceBefore = Number(wallet.balance.toFixed(2))
+  const balanceBefore = Number(wallet.balance.toFixed(2))
   let balanceAfter = balanceBefore
   const processedRollbackIds: string[] = []
 

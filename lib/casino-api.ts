@@ -266,7 +266,7 @@ async function makeCasinoRequest<T>(
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
   }
 
-  let requestOptions: RequestInit = {
+  const requestOptions: RequestInit = {
     method,
     headers,
   }
