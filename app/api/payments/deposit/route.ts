@@ -19,7 +19,7 @@ import { UnauthorizedError, ValidationError } from '@/lib/errors'
 
 const depositSchema = z.object({
   amount: z.number().positive().min(0.01),
-  currency: z.string().default('MAD'),
+  currency: z.string().default('EUR'),
   network: z.enum(['mainnet', 'testnet']).default('testnet'),
 })
 
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Convert from currency to USD first, then to BTC
       // For now, we'll use a simple conversion (you might want to enhance this)
-      const usdAmount = currency.toUpperCase() === 'USD' ? amount : amount * 0.1 // Rough MAD to USD conversion
+      const usdAmount = currency.toUpperCase() === 'USD' ? amount : amount * 0.1 // Rough EUR to USD conversion
       btcAmount = await usdToBTC(usdAmount)
     }
 

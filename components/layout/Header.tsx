@@ -46,7 +46,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             </div>
             
             <select className="px-3 py-2 bg-background-elevated border border-transparent rounded-md text-text-primary focus:outline-none focus:border-accent-primary">
-              <option value="MAD">MAD</option>
+              <option value="EUR">MAD</option>
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
             </select>

@@ -29,7 +29,7 @@ export interface Transaction {
  */
 export async function getOrCreateWallet(
   userId: string,
-  currency: string = 'MAD'
+  currency: string = 'EUR'
 ): Promise<WalletBalance> {
   // Check if wallet exists - handle missing bonus_balance column gracefully
   // Try to select with bonus_balance first, fallback if column doesn't exist
@@ -127,7 +127,7 @@ export async function createTransaction(data: {
   referenceType?: string
   metadata?: any
 }): Promise<Transaction> {
-  const currency = data.currency || 'MAD'
+  const currency = data.currency || 'EUR'
   const wallet = await getOrCreateWallet(data.userId, currency)
 
   const balanceBefore = wallet.balance

@@ -152,7 +152,7 @@ export async function checkPaymentStatus(
     await createTransaction({
       userId: deposit.user_id,
       type: 'deposit',
-      amount: deposit.amount, // Amount in user's currency (MAD)
+      amount: deposit.amount, // Amount in user's currency (EUR)
       currency: deposit.currency,
       description: `Bitcoin deposit - ${txHash.substring(0, 8)}...`,
       referenceId: depositId,

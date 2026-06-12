@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest) {
     const { currency, language, theme } = body
 
     // Validate currency if provided
-    const validCurrencies = ['USD', 'EUR', 'GBP', 'MAD', 'BTC', 'ETH']
+    const validCurrencies = ['USD', 'EUR', 'GBP', 'EUR', 'BTC', 'ETH']
     if (currency && !validCurrencies.includes(currency)) {
       return errorResponse(new Error(`Invalid currency. Must be one of: ${validCurrencies.join(', ')}`), 400)
     }

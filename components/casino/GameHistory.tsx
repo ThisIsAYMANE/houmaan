@@ -102,7 +102,7 @@ export default function GameHistory({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'MAD',
+      currency: 'EUR',
       minimumFractionDigits: 2
     }).format(amount)
   }

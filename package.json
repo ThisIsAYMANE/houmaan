@@ -24,6 +24,7 @@
     "test:phase2:full": "tsx tests/test-phase2-full.ts",
     "test:phase2:complete": "tsx tests/test-phase2-complete.ts",
     "test:phase2": "tsx tests/test-phase2-deposit.ts",
+    "test:usdt": "tsx tests/test-usdt-integration.ts",
     "test:unit": "jest",
     "test:unit:watch": "jest --watch",
     "test:unit:coverage": "jest --coverage",

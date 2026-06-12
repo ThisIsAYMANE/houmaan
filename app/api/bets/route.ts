@@ -4,9 +4,9 @@ import { nanoid } from 'nanoid'
 
 // Betting limits configuration
 const BETTING_LIMITS = {
-  MIN_BET: 1,        // Minimum bet amount in MAD
-  MAX_BET: 100000,   // Maximum bet amount in MAD
-  MAX_PAYOUT: 1000000, // Maximum potential payout in MAD
+  MIN_BET: 1,        // Minimum bet amount in EUR
+  MAX_BET: 100000,   // Maximum bet amount in EUR
+  MAX_PAYOUT: 1000000, // Maximum potential payout in EUR
   USER_MAX_PENDING: 50  // Maximum pending bets per user
 }
 
@@ -29,13 +29,13 @@ async function getUserId(request: NextRequest): Promise<string | null> {
 // Validate bet amount against limits
 function validateBetAmount(amount: number, potentialWin: number): { valid: boolean; error?: string } {
   if (amount < BETTING_LIMITS.MIN_BET) {
-    return { valid: false, error: `Minimum bet is ${BETTING_LIMITS.MIN_BET} MAD` }
+    return { valid: false, error: `Minimum bet is ${BETTING_LIMITS.MIN_BET} EUR` }
   }
   if (amount > BETTING_LIMITS.MAX_BET) {
-    return { valid: false, error: `Maximum bet is ${BETTING_LIMITS.MAX_BET} MAD` }
+    return { valid: false, error: `Maximum bet is ${BETTING_LIMITS.MAX_BET} EUR` }
   }
   if (potentialWin > BETTING_LIMITS.MAX_PAYOUT) {
-    return { valid: false, error: `Maximum payout is ${BETTING_LIMITS.MAX_PAYOUT} MAD` }
+    return { valid: false, error: `Maximum payout is ${BETTING_LIMITS.MAX_PAYOUT} EUR` }
   }
   return { valid: true }
 }
@@ -65,7 +65,7 @@ async function deductWalletBalance(userId: string, amount: number): Promise<{ su
       `UPDATE wallets 
        SET balance = balance - ?, updated_at = CURRENT_TIMESTAMP 
        WHERE user_id = ? AND currency = ? AND balance >= ?`,
-      [amount, userId, 'MAD', amount]
+      [amount, userId, 'EUR', amount]
     )
     
     // Check if any rows were updated (rowCount > 0 means update succeeded)
@@ -73,7 +73,7 @@ async function deductWalletBalance(userId: string, amount: number): Promise<{ su
       // Check if wallet exists or if balance is insufficient
       const wallet = await queryOne<{ balance: number }>(
         'SELECT balance FROM wallets WHERE user_id = ? AND currency = ?',
-        [userId, 'MAD']
+        [userId, 'EUR']
       )
       
       if (!wallet) {
@@ -90,7 +90,7 @@ async function deductWalletBalance(userId: string, amount: number): Promise<{ su
     // Get updated balance
     const updatedWallet = await queryOne<{ balance: number }>(
       'SELECT balance FROM wallets WHERE user_id = ? AND currency = ?',
-      [userId, 'MAD']
+      [userId, 'EUR']
     )
     
     return { success: true, newBalance: updatedWallet?.balance || 0 }
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       selection,
       odds,
       amount,
-      currency = 'MAD',
+      currency = 'EUR',
       selections // For accumulator bets: Array<{ matchId, marketId, selection, odds }>
     } = body
 

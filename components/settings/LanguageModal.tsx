@@ -19,7 +19,7 @@ const languages = [
 ]
 
 const currencies = [
-  { code: 'MAD', name: 'Moroccan Dirham', symbol: 'MAD' },
+  { code: 'EUR', name: 'Moroccan Dirham', symbol: 'EUR' },
   { code: 'USD', name: 'US Dollar', symbol: '$' },
   { code: 'EUR', name: 'Euro', symbol: '€' },
   { code: 'GBP', name: 'British Pound', symbol: '£' },
@@ -40,7 +40,7 @@ export default function LanguageModal({
   isOpen,
   onClose,
   currentLanguage = 'fr',
-  currentCurrency = 'MAD',
+  currentCurrency = 'EUR',
   onLanguageChange,
   onCurrencyChange,
 }: LanguageModalProps) {

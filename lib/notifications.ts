@@ -53,7 +53,7 @@ export async function notifyBetPlaced(userId: string, betAmount: number, odds: n
     userId,
     type: 'bet_placed',
     title: '✅ Bet Placed',
-    message: `Your bet of ${betAmount} MAD at odds ${odds.toFixed(2)} has been placed successfully.`,
+    message: `Your bet of ${betAmount} EUR at odds ${odds.toFixed(2)} has been placed successfully.`,
     data: { amount: betAmount, odds }
   })
 }
@@ -63,7 +63,7 @@ export async function notifyBetWon(userId: string, betAmount: number, winAmount:
     userId,
     type: 'bet_won',
     title: '🎉 Bet Won!',
-    message: `Congratulations! Your bet won ${winAmount} MAD (stake: ${betAmount} MAD).`,
+    message: `Congratulations! Your bet won ${winAmount} EUR (stake: ${betAmount} EUR).`,
     data: { betAmount, winAmount, profit: winAmount - betAmount }
   })
 }
@@ -73,7 +73,7 @@ export async function notifyBetLost(userId: string, betAmount: number) {
     userId,
     type: 'bet_lost',
     title: '📉 Bet Lost',
-    message: `Unfortunately, your bet of ${betAmount} MAD was not successful. Better luck next time!`,
+    message: `Unfortunately, your bet of ${betAmount} EUR was not successful. Better luck next time!`,
     data: { betAmount }
   })
 }
@@ -83,7 +83,7 @@ export async function notifyCashOut(userId: string, cashOutAmount: number, origi
     userId,
     type: 'bet_cashout',
     title: '💰 Cash-Out Successful',
-    message: `You cashed out ${cashOutAmount} MAD (original stake: ${originalStake} MAD).`,
+    message: `You cashed out ${cashOutAmount} EUR (original stake: ${originalStake} EUR).`,
     data: { cashOutAmount, originalStake, profit: cashOutAmount - originalStake }
   })
 }
@@ -94,8 +94,8 @@ export async function notifyDepositConfirmed(userId: string, amount: number, btc
     type: 'deposit_confirmed',
     title: '✅ Deposit Confirmed',
     message: btcAmount 
-      ? `Your deposit of ${btcAmount} BTC (${amount} MAD) has been confirmed and added to your wallet.`
-      : `Your deposit of ${amount} MAD has been confirmed and added to your wallet.`,
+      ? `Your deposit of ${btcAmount} BTC (${amount} EUR) has been confirmed and added to your wallet.`
+      : `Your deposit of ${amount} EUR has been confirmed and added to your wallet.`,
     data: { amount, btcAmount }
   })
 }
@@ -105,7 +105,7 @@ export async function notifyDepositPending(userId: string, amount: number) {
     userId,
     type: 'deposit_pending',
     title: '⏳ Deposit Pending',
-    message: `Your deposit of ${amount} MAD is being processed. You'll be notified when it's confirmed.`,
+    message: `Your deposit of ${amount} EUR is being processed. You'll be notified when it's confirmed.`,
     data: { amount }
   })
 }
@@ -115,7 +115,7 @@ export async function notifyWithdrawalProcessed(userId: string, amount: number) 
     userId,
     type: 'withdrawal_processed',
     title: '✅ Withdrawal Processed',
-    message: `Your withdrawal of ${amount} MAD has been processed successfully.`,
+    message: `Your withdrawal of ${amount} EUR has been processed successfully.`,
     data: { amount }
   })
 }
@@ -125,7 +125,7 @@ export async function notifyWithdrawalPending(userId: string, amount: number) {
     userId,
     type: 'withdrawal_pending',
     title: '⏳ Withdrawal Pending',
-    message: `Your withdrawal request of ${amount} MAD is being reviewed. This usually takes 24-48 hours.`,
+    message: `Your withdrawal request of ${amount} EUR is being reviewed. This usually takes 24-48 hours.`,
     data: { amount }
   })
 }
@@ -135,7 +135,7 @@ export async function notifyBonusReceived(userId: string, amount: number, reason
     userId,
     type: 'bonus_received',
     title: '🎁 Bonus Received!',
-    message: `You've received a bonus of ${amount} MAD! ${reason}`,
+    message: `You've received a bonus of ${amount} EUR! ${reason}`,
     data: { amount, reason }
   })
 }

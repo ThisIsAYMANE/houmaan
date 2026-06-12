@@ -171,7 +171,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   <p className="text-2xl font-bold text-text-primary">
                     {profile?.profile?.totalWinnings
                       ? `${profile.profile.totalWinnings.toLocaleString('fr-FR')} ${profile.profile.currency}`
-                      : '0 MAD'}
+                      : '0 EUR'}
                   </p>
                 </div>
                 <div className="bg-background-elevated rounded-lg p-4">
@@ -191,7 +191,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   <p className="text-2xl font-bold text-text-primary">
                     {profile?.profile?.totalWagers
                       ? `${profile.profile.totalWagers.toLocaleString('fr-FR')} ${profile.profile.currency}`
-                      : '0 MAD'}
+                      : '0 EUR'}
                   </p>
                 </div>
               </div>
@@ -245,7 +245,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                       Devise
                     </label>
                     <p className="text-text-primary">
-                      {profile?.profile?.currency || 'MAD'}
+                      {profile?.profile?.currency || 'EUR'}
                     </p>
                   </div>
                   <div>

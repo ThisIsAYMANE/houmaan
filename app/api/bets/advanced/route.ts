@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       betType, // 'accumulator', 'trixie', 'patent', 'yankee', etc.
       selections,
       unitStake,
-      currency = 'MAD'
+      currency = 'EUR'
     } = body
 
     // Validate selections

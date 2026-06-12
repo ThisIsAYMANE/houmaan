@@ -222,7 +222,7 @@ export default function AdminDashboard() {
               <p className="text-3xl font-bold text-white mt-2">
                 {stats.financial.totalBalance.toLocaleString('fr-FR', {
                   style: 'currency',
-                  currency: 'MAD',
+                  currency: 'EUR',
                   minimumFractionDigits: 0,
                 })}
               </p>
@@ -336,7 +336,7 @@ export default function AdminDashboard() {
             <p className="text-4xl font-bold text-white">
               {stats?.betting.totalWagered.toLocaleString('fr-FR', {
                 style: 'currency',
-                currency: 'MAD',
+                currency: 'EUR',
                 minimumFractionDigits: 0,
               })}
             </p>
@@ -404,7 +404,7 @@ export default function AdminDashboard() {
                     <p className="text-white font-medium">
                       {deposit.amount.toLocaleString('fr-FR', {
                         style: 'currency',
-                        currency: 'MAD',
+                        currency: 'EUR',
                       })}
                     </p>
                     {deposit.btc_amount && (
@@ -448,7 +448,7 @@ export default function AdminDashboard() {
                     <p className="text-white font-medium">
                       {bet.amount.toLocaleString('fr-FR', {
                         style: 'currency',
-                        currency: 'MAD',
+                        currency: 'EUR',
                       })}
                     </p>
                     <p className="text-gray-400 text-sm">

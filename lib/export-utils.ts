@@ -84,7 +84,7 @@ export function exportToJSON(filename: string, data: any): void {
 /**
  * Format currency for export
  */
-export function formatCurrency(amount: number, currency: string = 'MAD'): string {
+export function formatCurrency(amount: number, currency: string = 'EUR'): string {
   return `${amount.toFixed(2)} ${currency}`
 }
 

@@ -159,7 +159,7 @@ export default function ReportsPage() {
           <li>• Reports are generated in CSV format for easy Excel/Google Sheets import</li>
           <li>• Use date range filter to limit report scope (leave empty for all data)</li>
           <li>• Large reports may take a few moments to generate</li>
-          <li>• All amounts are in MAD currency</li>
+          <li>• All amounts are in EUR currency</li>
           <li>• Dates are formatted in FR locale</li>
         </ul>
       </div>

@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const { user, isAuthenticated, sessionToken } = useAuthStore()
   const [showLanguageModal, setShowLanguageModal] = useState(false)
   const [currentLanguage, setCurrentLanguage] = useState('fr')
-  const [currentCurrency, setCurrentCurrency] = useState('MAD')
+  const [currentCurrency, setCurrentCurrency] = useState('EUR')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -33,7 +33,7 @@ export default function SettingsPage() {
         const data = await response.json()
         if (data.data?.profile) {
           setCurrentLanguage(data.data.profile.language || 'fr')
-          setCurrentCurrency(data.data.profile.currency || 'MAD')
+          setCurrentCurrency(data.data.profile.currency || 'EUR')
         }
       }
     } catch (error) {

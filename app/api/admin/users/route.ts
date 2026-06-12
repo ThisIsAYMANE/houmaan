@@ -87,14 +87,14 @@ export async function POST(request: NextRequest) {
     // Create profile
     await query(
       `INSERT INTO user_profiles (id, user_id, language, currency, theme)
-       VALUES (?, ?, 'fr', 'MAD', 'dark')`,
+       VALUES (?, ?, 'fr', 'EUR', 'dark')`,
       [nanoid(), userId]
     )
 
     // Create wallet
     await query(
       `INSERT INTO wallets (id, user_id, currency, balance)
-       VALUES (?, ?, 'MAD', 0)`,
+       VALUES (?, ?, 'EUR', 0)`,
       [nanoid(), userId]
     )
 

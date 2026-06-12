@@ -126,7 +126,7 @@ export default function CasinoAnalyticsPage() {
             <DollarSign className="w-5 h-5 text-green-500" />
           </div>
           <div className="text-2xl font-bold text-white">
-            {stats.totalWagered.toLocaleString()} MAD
+            {stats.totalWagered.toLocaleString()} EUR
           </div>
         </div>
 
@@ -136,7 +136,7 @@ export default function CasinoAnalyticsPage() {
             <Trophy className="w-5 h-5 text-yellow-500" />
           </div>
           <div className="text-2xl font-bold text-white">
-            {stats.totalWon.toLocaleString()} MAD
+            {stats.totalWon.toLocaleString()} EUR
           </div>
         </div>
 
@@ -146,7 +146,7 @@ export default function CasinoAnalyticsPage() {
             <TrendingUp className="w-5 h-5 text-purple-500" />
           </div>
           <div className="text-2xl font-bold text-green-400">
-            +{stats.netRevenue.toLocaleString()} MAD
+            +{stats.netRevenue.toLocaleString()} EUR
           </div>
         </div>
 

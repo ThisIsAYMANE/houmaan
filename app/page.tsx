@@ -146,42 +146,42 @@ export default function Home() {
       game_title: 'LIMBO',
       game_thumbnail: '',
       payout: 12500.50,
-      currency: 'MAD'
+      currency: 'EUR'
     },
     {
       id: '2',
       game_title: 'CRASH TRENBALL',
       game_thumbnail: '',
       payout: 8750.25,
-      currency: 'MAD'
+      currency: 'EUR'
     },
     {
       id: '3',
       game_title: 'Gates of Olympus',
       game_thumbnail: '',
       payout: 15200.00,
-      currency: 'MAD'
+      currency: 'EUR'
     },
     {
       id: '4',
       game_title: 'Sweet Bonanza',
       game_thumbnail: '',
       payout: 9800.75,
-      currency: 'MAD'
+      currency: 'EUR'
     },
     {
       id: '5',
       game_title: 'PLINKO',
       game_thumbnail: '',
       payout: 11250.00,
-      currency: 'MAD'
+      currency: 'EUR'
     },
     {
       id: '6',
       game_title: 'Book of Dead',
       game_thumbnail: '',
       payout: 6750.50,
-      currency: 'MAD'
+      currency: 'EUR'
     }
   ]
 
@@ -191,7 +191,7 @@ export default function Home() {
       game_title: 'Pinata Wins',
       player_username: 'Jimvirt',
       bet_amount: 3.12,
-      currency: 'MAD',
+      currency: 'EUR',
       country_flag: '🇵🇭',
       multiplier: 0.00,
       profit: -3.12,
@@ -202,7 +202,7 @@ export default function Home() {
       game_title: 'Golden Crown Booster',
       player_username: 'Tegkqbbluoac',
       bet_amount: 1.48,
-      currency: 'MAD',
+      currency: 'EUR',
       country_flag: '🟢',
       multiplier: 0.00,
       profit: -1.48,
@@ -213,7 +213,7 @@ export default function Home() {
       game_title: 'Gates of Olympus Super S...',
       player_username: 'johnslot89',
       bet_amount: 0.82,
-      currency: 'MAD',
+      currency: 'EUR',
       country_flag: '🇮🇩',
       multiplier: 0.00,
       profit: -0.82,
@@ -224,7 +224,7 @@ export default function Home() {
       game_title: 'boz.Topol Auto Mega Roul...',
       player_username: 'Hldfdbtqlpyb',
       bet_amount: 10.22,
-      currency: 'MAD',
+      currency: 'EUR',
       country_flag: '🇮🇳',
       multiplier: 2.00,
       profit: 10.22,
@@ -235,7 +235,7 @@ export default function Home() {
       game_title: 'Coin Strike: Hold and Win',
       player_username: 'Himangsu',
       bet_amount: 0.51,
-      currency: 'MAD',
+      currency: 'EUR',
       country_flag: '🇮🇳',
       multiplier: 4.00,
       profit: 1.53,
@@ -246,7 +246,7 @@ export default function Home() {
       game_title: 'Mega Bacarrat',
       player_username: 'mrzeroc',
       bet_amount: 71.05,
-      currency: 'MAD',
+      currency: 'EUR',
       country_flag: '🇮🇩',
       multiplier: 0.00,
       profit: -71.05,
@@ -257,7 +257,7 @@ export default function Home() {
       game_title: 'Sweet Bonanza 1000',
       player_username: 'najznhir07',
       bet_amount: 0.58,
-      currency: 'MAD',
+      currency: 'EUR',
       country_flag: '🇨🇿',
       multiplier: 0.00,
       profit: -0.58,
@@ -268,7 +268,7 @@ export default function Home() {
       game_title: 'Fortune Gems 2',
       player_username: 'Frclhhtvdycc',
       bet_amount: 0.76,
-      currency: 'MAD',
+      currency: 'EUR',
       country_flag: '🇮🇳',
       multiplier: 0.00,
       profit: -0.76,
@@ -279,7 +279,7 @@ export default function Home() {
       game_title: 'WUKONG',
       player_username: 'DJDaCoRe',
       bet_amount: 53.64,
-      currency: 'MAD',
+      currency: 'EUR',
       country_flag: '🇪🇺',
       multiplier: 0.00,
       profit: -53.64,
@@ -290,7 +290,7 @@ export default function Home() {
       game_title: 'Lamp of Wonder',
       player_username: 'Genious123',
       bet_amount: 1.02,
-      currency: 'MAD',
+      currency: 'EUR',
       country_flag: '🇮🇳',
       multiplier: 0.00,
       profit: -1.02,

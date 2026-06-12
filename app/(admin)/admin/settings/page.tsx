@@ -12,7 +12,7 @@ export default function SettingsPage() {
     registrationEnabled: true,
     emailNotifications: true,
     smsNotifications: false,
-    currency: 'MAD',
+    currency: 'EUR',
     language: 'fr',
     timezone: 'Africa/Casablanca',
     minDeposit: 100,
@@ -246,7 +246,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Revenus aujourd'hui</span>
-                <span className="text-green-400 font-medium">45,000 MAD</span>
+                <span className="text-green-400 font-medium">45,000 EUR</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Paris en attente</span>

@@ -74,7 +74,7 @@ export default function PayoutsPage() {
 
       const data = await response.json()
       if (data.success) {
-        alert(`✅ Processed ${data.processed} bets, Paid out ${data.totalPaid} MAD`)
+        alert(`✅ Processed ${data.processed} bets, Paid out ${data.totalPaid} EUR`)
         fetchPayouts()
       } else {
         alert(`❌ Error: ${data.error}`)
@@ -121,7 +121,7 @@ export default function PayoutsPage() {
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
           <div className="text-gray-400 text-sm mb-2">Total at Risk</div>
           <div className="text-2xl font-bold text-yellow-500">
-            {payouts.reduce((sum, p) => sum + p.totalPayout, 0).toLocaleString()} MAD
+            {payouts.reduce((sum, p) => sum + p.totalPayout, 0).toLocaleString()} EUR
           </div>
         </div>
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
@@ -164,8 +164,8 @@ export default function PayoutsPage() {
                   </div>
                 )}
                 <div className="text-sm text-gray-400 mt-2">
-                  {payout.betCount} pending bets • {payout.totalStake.toLocaleString()} MAD stake •{' '}
-                  {payout.totalPayout.toLocaleString()} MAD potential payout
+                  {payout.betCount} pending bets • {payout.totalStake.toLocaleString()} EUR stake •{' '}
+                  {payout.totalPayout.toLocaleString()} EUR potential payout
                 </div>
               </div>
               

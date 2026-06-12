@@ -168,7 +168,7 @@ export default function BetsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white font-medium">
                       {bet.amount.toLocaleString('fr-FR', {
                         style: 'currency',
-                        currency: 'MAD',
+                        currency: 'EUR',
                       })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">

@@ -31,7 +31,7 @@ export const placeBetSchema = z.object({
   selection: z.string(),
   odds: z.coerce.number().positive(),
   amount: z.coerce.number().positive(),
-  currency: z.string().default('MAD'),
+  currency: z.string().default('EUR'),
 })
 
 // Wallet validation schemas

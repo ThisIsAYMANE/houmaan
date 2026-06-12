@@ -212,7 +212,7 @@ export async function validateBetLimits(
 
   // Check minimum bet
   if (amount < userLimits.minBet) {
-    errors.push(`Minimum bet is ${userLimits.minBet} MAD`)
+    errors.push(`Minimum bet is ${userLimits.minBet} EUR`)
   }
 
   // Check maximum bet
@@ -230,7 +230,7 @@ export async function validateBetLimits(
     }
   }
   if (amount > maxBet) {
-    errors.push(`Maximum bet is ${maxBet} MAD`)
+    errors.push(`Maximum bet is ${maxBet} EUR`)
   }
 
   // Check maximum payout
@@ -248,7 +248,7 @@ export async function validateBetLimits(
     }
   }
   if (potentialWin > maxPayout) {
-    errors.push(`Maximum potential win is ${maxPayout} MAD`)
+    errors.push(`Maximum potential win is ${maxPayout} EUR`)
   }
 
   // Check pending bets limit
@@ -270,7 +270,7 @@ export async function validateBetLimits(
       [userId]
     )
     if (todayTotal && todayTotal.total + amount > userLimits.dailyBetLimit) {
-      errors.push(`Daily betting limit is ${userLimits.dailyBetLimit} MAD`)
+      errors.push(`Daily betting limit is ${userLimits.dailyBetLimit} EUR`)
     }
   }
 
@@ -284,7 +284,7 @@ export async function validateBetLimits(
       [userId]
     )
     if (weekTotal && weekTotal.total + amount > userLimits.weeklyBetLimit) {
-      errors.push(`Weekly betting limit is ${userLimits.weeklyBetLimit} MAD`)
+      errors.push(`Weekly betting limit is ${userLimits.weeklyBetLimit} EUR`)
     }
   }
 
@@ -298,7 +298,7 @@ export async function validateBetLimits(
       [userId]
     )
     if (monthTotal && monthTotal.total + amount > userLimits.monthlyBetLimit) {
-      errors.push(`Monthly betting limit is ${userLimits.monthlyBetLimit} MAD`)
+      errors.push(`Monthly betting limit is ${userLimits.monthlyBetLimit} EUR`)
     }
   }
 

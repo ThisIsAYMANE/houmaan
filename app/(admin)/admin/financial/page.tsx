@@ -192,7 +192,7 @@ export default function FinancialPage() {
               <p className="text-3xl font-bold text-white mt-2">
                 {data.totalBalance.toLocaleString('fr-FR', {
                   style: 'currency',
-                  currency: 'MAD',
+                  currency: 'EUR',
                   minimumFractionDigits: 0,
                 })}
               </p>
@@ -210,7 +210,7 @@ export default function FinancialPage() {
               <p className="text-3xl font-bold text-white mt-2">
                 {data.totalDeposits.toLocaleString('fr-FR', {
                   style: 'currency',
-                  currency: 'MAD',
+                  currency: 'EUR',
                   minimumFractionDigits: 0,
                 })}
               </p>
@@ -234,7 +234,7 @@ export default function FinancialPage() {
               <p className="text-3xl font-bold text-white mt-2">
                 {data.totalWithdrawals.toLocaleString('fr-FR', {
                   style: 'currency',
-                  currency: 'MAD',
+                  currency: 'EUR',
                   minimumFractionDigits: 0,
                 })}
               </p>
@@ -258,7 +258,7 @@ export default function FinancialPage() {
               <p className="text-3xl font-bold text-white mt-2">
                 {(data.totalDeposits - data.totalWithdrawals).toLocaleString('fr-FR', {
                   style: 'currency',
-                  currency: 'MAD',
+                  currency: 'EUR',
                   minimumFractionDigits: 0,
                 })}
               </p>
@@ -356,7 +356,7 @@ export default function FinancialPage() {
                         <span className="text-white font-medium">
                           {tx.amount.toLocaleString('fr-FR', {
                             style: 'currency',
-                            currency: tx.currency || 'MAD',
+                            currency: tx.currency || 'EUR',
                           })}
                         </span>
                       </td>

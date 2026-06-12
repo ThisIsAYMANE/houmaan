@@ -147,7 +147,7 @@ export default function LiveBettingMonitor() {
               <DollarSign className="w-5 h-5 text-blue-500" />
             </div>
             <div className="text-2xl font-bold text-white">
-              {riskMetrics.totalExposure.toLocaleString()} MAD
+              {riskMetrics.totalExposure.toLocaleString()} EUR
             </div>
           </div>
 
@@ -167,7 +167,7 @@ export default function LiveBettingMonitor() {
               <TrendingUp className="w-5 h-5 text-yellow-500" />
             </div>
             <div className="text-2xl font-bold text-white">
-              {riskMetrics.largestSingleBet.toLocaleString()} MAD
+              {riskMetrics.largestSingleBet.toLocaleString()} EUR
             </div>
           </div>
 
@@ -196,7 +196,7 @@ export default function LiveBettingMonitor() {
             <span className="font-semibold">{riskMetrics.mostBetOnMatch.awayTeam}</span>
           </p>
           <p className="text-yellow-500 font-semibold">
-            Total Stake: {riskMetrics.mostBetOnMatch.totalStake.toLocaleString()} MAD
+            Total Stake: {riskMetrics.mostBetOnMatch.totalStake.toLocaleString()} EUR
           </p>
         </div>
       )}
@@ -263,13 +263,13 @@ export default function LiveBettingMonitor() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-white font-semibold">
-                      {bet.amount.toLocaleString()} MAD
+                      {bet.amount.toLocaleString()} EUR
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-white">
                       {bet.odds.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right font-semibold text-green-400">
-                      {bet.potential_win.toLocaleString()} MAD
+                      {bet.potential_win.toLocaleString()} EUR
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${getRiskBadge(bet.risk_score)}`}>

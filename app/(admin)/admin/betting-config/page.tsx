@@ -337,10 +337,10 @@ export default function BettingConfigPage() {
                   <span className="text-text-secondary">Max Bet:</span>
                   <span className="text-text-primary font-semibold">
                     {/* Dynamic based on tier */}
-                    {key === 'bronze' && '1,000 MAD'}
-                    {key === 'silver' && '5,000 MAD'}
-                    {key === 'gold' && '20,000 MAD'}
-                    {key === 'platinum' && '100,000 MAD'}
+                    {key === 'bronze' && '1,000 EUR'}
+                    {key === 'silver' && '5,000 EUR'}
+                    {key === 'gold' && '20,000 EUR'}
+                    {key === 'platinum' && '100,000 EUR'}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -355,10 +355,10 @@ export default function BettingConfigPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-text-secondary">Daily Limit:</span>
                   <span className="text-text-primary font-semibold">
-                    {key === 'bronze' && '5,000 MAD'}
-                    {key === 'silver' && '20,000 MAD'}
-                    {key === 'gold' && '100,000 MAD'}
-                    {key === 'platinum' && '500,000 MAD'}
+                    {key === 'bronze' && '5,000 EUR'}
+                    {key === 'silver' && '20,000 EUR'}
+                    {key === 'gold' && '100,000 EUR'}
+                    {key === 'platinum' && '500,000 EUR'}
                   </span>
                 </div>
               </div>
