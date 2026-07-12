@@ -115,7 +115,7 @@ export default function ConnectWalletButton({
               setTxStatus('success')
               onSuccess?.(hash)
             },
-            onError: (err: BaseError) => {
+            onError: (err: Error) => {
               setErrorMsg(err.message)
               setTxStatus('error')
               onError?.(err.message)
