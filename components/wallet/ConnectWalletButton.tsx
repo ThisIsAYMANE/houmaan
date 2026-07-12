@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useAccount, useConnect, useDisconnect, useSendTransaction, useWriteContract, useChainId, useSwitchChain, type Connector } from 'wagmi'
 import { parseEther, parseUnits } from 'viem'
-import type { BaseError } from 'viem'
+
 import { mainnet, bsc, polygon } from 'wagmi/chains'
 
 // Minimal ERC-20 ABI for transfer
@@ -87,7 +87,7 @@ export default function ConnectWalletButton({
               setTxStatus('success')
               onSuccess?.(hash)
             },
-            onError: (err: BaseError) => {
+            onError: (err: Error) => {
               setErrorMsg(err.message)
               setTxStatus('error')
               onError?.(err.message)
