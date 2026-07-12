@@ -74,7 +74,7 @@ export async function verifyWalletSignature(
 ): Promise<{ userId: string; isNewUser: boolean } | null> {
   try {
     // Verify the signature
-    const message = `Sign this message to authenticate with boz.Topol\n\nNonce: ${nonce}`
+    const message = `Sign this message to authenticate with Shartbandee\n\nNonce: ${nonce}`
     const recoveredAddress = ethers.verifyMessage(message, signature)
 
     if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {

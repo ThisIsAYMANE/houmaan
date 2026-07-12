@@ -63,7 +63,7 @@ export default function AdminLoginPage() {
         <div className="bg-gray-800 rounded-lg shadow-2xl p-8 border border-gray-700">
           {/* Logo/Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">boz.Topol</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Shartbandee</h1>
             <p className="text-gray-400">Administration</p>
           </div>
 

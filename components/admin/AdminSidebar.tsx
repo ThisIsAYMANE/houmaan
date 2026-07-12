@@ -81,7 +81,7 @@ export default function AdminSidebar() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-700">
-            <h1 className="text-xl font-bold text-white">boz.Topol</h1>
+            <h1 className="text-xl font-bold text-white">Shartbandee</h1>
             <button
               onClick={() => setMobileMenuOpen(false)}
               className="lg:hidden text-gray-400 hover:text-white"

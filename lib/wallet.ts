@@ -181,6 +181,57 @@ export async function createTransaction(data: {
 }
 
 /**
+ * Process a withdrawal request
+ */
+export async function processWithdrawal(
+  userId: string,
+  amount: number,
+  toAddress: string,
+  network: string,
+  tokenType: string
+) {
+  const wallet = await getOrCreateWallet(userId)
+  
+  if (wallet.balance < amount) {
+    throw new Error('Insufficient balance')
+  }
+
+  // Deduct balance by creating a negative transaction
+  const tx = await createTransaction({
+    userId,
+    type: 'withdrawal',
+    amount: -amount,
+    currency: 'EUR',
+    description: `Withdrawal to ${tokenType.toUpperCase()} (${network})`,
+    metadata: {
+      toAddress,
+      network,
+      tokenType
+    }
+  })
+
+  // Insert into withdrawals table
+  const withdrawalId = nanoid()
+  await query(
+    `INSERT INTO withdrawals (
+      id, user_id, amount, currency, method, network,
+      address, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
+    [
+      withdrawalId,
+      userId,
+      amount,
+      'EUR',
+      tokenType,
+      network,
+      toAddress
+    ]
+  )
+
+  return tx
+}
+
+/**
  * Lock balance (for active bets)
  */
 export async function lockBalance(
@@ -370,4 +421,3 @@ export async function verifyBalance(userId: string): Promise<{
     difference,
   }
 }
-

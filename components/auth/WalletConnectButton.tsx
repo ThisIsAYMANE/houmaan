@@ -47,7 +47,7 @@ export default function WalletConnectButton({
       const { nonce } = nonceResult.data
 
       // Step 3: Sign message with wallet
-      const message = `Sign this message to authenticate with boz.Topol\n\nNonce: ${nonce}`
+      const message = `Sign this message to authenticate with Shartbandee\n\nNonce: ${nonce}`
       const signature = await signMessage(message)
 
       if (!signature) {

@@ -298,14 +298,14 @@ export default function BetSlip({
             </div>
           )}
 
-          {/* boz.Topol Logo */}
+          {/* Shartbandee Logo */}
           {activeTab === 'accumulator' && bets.length > 0 && (
             <div className="flex justify-center mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
-                  <span className="text-black font-bold text-sm">boz</span>
+                  <span className="text-black font-bold text-sm">SB</span>
                 </div>
-                <span className="text-white font-semibold">boz.Topol</span>
+                <span className="text-white font-semibold">Shartbandee</span>
               </div>
             </div>
           )}

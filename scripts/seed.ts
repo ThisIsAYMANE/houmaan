@@ -38,7 +38,7 @@ async function seed() {
 
     // Create Game Providers
     const providers = [
-      { name: 'boz.Topol Originals', slug: 'boz-topol-originals' },
+      { name: 'Shartbandee Originals', slug: 'shartbandee-originals' },
       { name: 'Evolution', slug: 'evolution' },
       { name: 'Pragmatic Play', slug: 'pragmatic-play' },
       { name: 'HACKSAW', slug: 'hacksaw' },

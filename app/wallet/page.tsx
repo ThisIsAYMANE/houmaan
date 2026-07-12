@@ -1,25 +1,22 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+
 export default function WalletPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    // Redirect to home page where they can use the Deposit button in the header
+    router.replace('/')
+  }, [router])
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-text-primary mb-4">Wallet</h1>
-      <p className="text-text-secondary">Wallet management page - Coming soon</p>
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-center">
+        <div className="animate-spin inline-block w-8 h-8 border-4 border-accent-primary border-t-transparent rounded-full mb-4"></div>
+        <p className="text-text-secondary">Opening wallet...</p>
+      </div>
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

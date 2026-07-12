@@ -1,81 +1,107 @@
 'use client'
 
-import { Menu, Search, Gift, MessageCircle, Bell, User } from 'lucide-react'
+import { useState } from 'react'
+import { Menu, Search, Gift, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import BCJetonCard from './BCJetonCard'
 import ProfileDropdown from './ProfileDropdown'
 import NotificationBell from './NotificationBell'
+import CryptoPaymentModal from '@/components/wallet/CryptoPaymentModal'
 
 interface HeaderProps {
   onMenuClick: () => void
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
+  const [depositModalOpen, setDepositModalOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      window.location.href = `/games?search=${encodeURIComponent(searchQuery.trim())}`
+    }
+  }
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background-secondary border-b border-background-elevated">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Left Section */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onMenuClick}
-              className="p-2 hover:bg-background-elevated rounded-md transition-colors"
-              aria-label="Toggle menu"
-            >
-              <Menu className="w-6 h-6 text-text-primary" />
-            </button>
-            
-            <Link href="/" className="flex items-center">
-              <span className="text-2xl font-bold text-accent-primary">
-                boz.Topol
-              </span>
-            </Link>
-          </div>
+    <>
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background-secondary border-b border-background-elevated">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Left Section */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onMenuClick}
+                className="p-2 hover:bg-background-elevated rounded-md transition-colors"
+                aria-label="Toggle menu"
+              >
+                <Menu className="w-6 h-6 text-text-primary" />
+              </button>
 
-          {/* Center Section */}
-          <div className="hidden md:flex items-center gap-4 flex-1 max-w-2xl mx-8">
-            <BCJetonCard />
-            
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-secondary" />
-              <input
-                type="text"
-                placeholder="Rechercher des jeux..."
-                className="w-full pl-10 pr-4 py-2 bg-background-elevated border border-transparent rounded-md text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent-primary transition-colors"
-              />
+              <Link href="/" className="flex items-center">
+                <span className="text-2xl font-bold text-accent-primary">
+                  Shartbandee
+                </span>
+              </Link>
             </div>
-            
-            <select className="px-3 py-2 bg-background-elevated border border-transparent rounded-md text-text-primary focus:outline-none focus:border-accent-primary">
-              <option value="EUR">MAD</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-            </select>
-            
-            <button className="px-4 py-2 bg-accent-primary text-background-primary rounded-md font-medium hover:bg-accent-primary/90 transition-colors">
-              Dépôt
-            </button>
-          </div>
 
-          {/* Right Section */}
-          <div className="flex items-center gap-2">
-            <button className="p-2 hover:bg-background-elevated rounded-md relative">
-              <Gift className="w-5 h-5 text-text-primary" />
-            </button>
-            
-            <button className="p-2 hover:bg-background-elevated rounded-md relative">
-              <MessageCircle className="w-5 h-5 text-text-primary" />
-            </button>
-            
-            <NotificationBell />
-            
-            <ProfileDropdown />
+            {/* Center Section */}
+            <div className="hidden md:flex items-center gap-4 flex-1 max-w-2xl mx-8">
+              <BCJetonCard />
+
+              <form onSubmit={handleSearch} className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-secondary" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search games..."
+                  className="w-full pl-10 pr-4 py-2 bg-background-elevated border border-transparent rounded-md text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent-primary transition-colors"
+                />
+              </form>
+
+              <select className="px-3 py-2 bg-background-elevated border border-transparent rounded-md text-text-primary focus:outline-none focus:border-accent-primary">
+                <option value="MAD">MAD</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+
+              <button
+                id="header-deposit-btn"
+                onClick={() => setDepositModalOpen(true)}
+                className="px-4 py-2 bg-accent-primary text-background-primary rounded-md font-medium hover:bg-accent-primary/90 transition-colors"
+              >
+                Deposit
+              </button>
+            </div>
+
+            {/* Right Section */}
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+
+              <ProfileDropdown />
+            </div>
           </div>
         </div>
+      </header>
+
+      {/* Mobile Deposit Button (shown below header on small screens) */}
+      <div className="md:hidden fixed bottom-4 right-4 z-40">
+        <button
+          id="mobile-deposit-btn"
+          onClick={() => setDepositModalOpen(true)}
+          className="px-6 py-3 bg-accent-primary text-background-primary rounded-full font-bold shadow-lg hover:bg-accent-primary/90 transition-colors"
+          style={{ boxShadow: '0 4px 20px rgba(124,58,237,0.5)' }}
+        >
+          + Deposit
+        </button>
       </div>
-    </header>
+
+      {/* Crypto Payment Modal */}
+      <CryptoPaymentModal
+        isOpen={depositModalOpen}
+        onClose={() => setDepositModalOpen(false)}
+      />
+    </>
   )
 }
-
-
-
-

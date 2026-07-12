@@ -61,7 +61,7 @@ export default function Home() {
       title: 'LIMBO',
       slug: 'limbo',
       thumbnail_url: '',
-      provider_name: 'boz.Topol Originals',
+      provider_name: 'Shartbandee Originals',
       provider_logo: '',
       player_count: 358,
       multiplier: 500,
@@ -73,7 +73,7 @@ export default function Home() {
       title: 'CRASH TRENBALL',
       slug: 'crash-trenball',
       thumbnail_url: '',
-      provider_name: 'boz.Topol Originals',
+      provider_name: 'Shartbandee Originals',
       provider_logo: '',
       player_count: 2363,
       multiplier: 999,
@@ -85,7 +85,7 @@ export default function Home() {
       title: 'PLINKO',
       slug: 'plinko',
       thumbnail_url: '',
-      provider_name: 'boz.Topol Originals',
+      provider_name: 'Shartbandee Originals',
       provider_logo: '',
       player_count: 148,
       multiplier: 420,
@@ -221,7 +221,7 @@ export default function Home() {
     },
     {
       id: '4',
-      game_title: 'boz.Topol Auto Mega Roul...',
+      game_title: 'Shartbandee Auto Mega Roul...',
       player_username: 'Hldfdbtqlpyb',
       bet_amount: 10.22,
       currency: 'EUR',
@@ -316,7 +316,7 @@ export default function Home() {
       const loadedPopular = popularData.games || []
       setPopularGames(loadedPopular.length > 0 ? loadedPopular : getMockGames())
 
-      // Load boz Originaux games - use mock data if empty
+      // Load Shartbandee Originaux games - use mock data if empty
       const bcOriginauxRes = await fetch('/api/games?category=bc-originaux&limit=10')
       const bcOriginauxData = await bcOriginauxRes.json()
       const loadedBcOriginaux = bcOriginauxData.games || []
@@ -358,7 +358,7 @@ export default function Home() {
         {
           id: '3',
           title: 'ANNIVERSAIRE 2025',
-          description: 'C\'EST LA FÊTE CHEZ boz.Topol!',
+          description: 'C\'EST LA FÊTE CHEZ Shartbandee!',
           image_url: '',
           link_url: '/promotions',
           button_text: 'OUER MAINTENANT',
@@ -441,12 +441,12 @@ export default function Home() {
           />
         )}
 
-        {/* boz Originaux */}
+        {/* Shartbandee Originaux */}
         {bcOriginauxGames.length > 0 && (
           <GameCarousel
-            title="boz Originaux"
+            title="Shartbandee Originals"
             games={bcOriginauxGames}
-            viewAllHref="/games?category=boz-originaux"
+            viewAllHref="/games?category=shartbandee-originaux"
             onGameClick={handleGameClick}
           />
         )}

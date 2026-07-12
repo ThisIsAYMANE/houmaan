@@ -6,8 +6,8 @@ import toast from 'react-hot-toast'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
-    siteName: 'boz.Topol',
-    siteUrl: 'https://boztopol.com',
+    siteName: 'Shartbandee',
+    siteUrl: 'https://shartbandee.com',
     maintenanceMode: false,
     registrationEnabled: true,
     emailNotifications: true,

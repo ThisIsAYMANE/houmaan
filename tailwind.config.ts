@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // boz.Topol Color Palette
+        // Shartbandee Color Palette
         background: {
           primary: '#1a1a1a',
           secondary: '#2a2a2a',

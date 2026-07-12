@@ -60,8 +60,8 @@ const navigation: NavSection[] = [
         items: [
           { label: 'Favoris', href: '/casino?category=favorites' },
           { label: 'Récent', href: '/casino?category=recent' },
-          { label: 'boz Originaux', href: '/casino?category=boz-originaux' },
-          { label: 'BC Exclusif', href: '/casino?category=bc-exclusif' },
+          { label: 'Shartbandee Originals', href: '/casino?category=shartbandee-originals' },
+          { label: 'Shartbandee Exclusive', href: '/casino?category=shartbandee-exclusif' },
           { label: 'Jeux populaires', href: '/casino?category=popular' },
           { label: 'Machines à sous', href: '/casino?category=slots' },
           { label: 'Casino en direct', href: '/casino?category=live-casino' },

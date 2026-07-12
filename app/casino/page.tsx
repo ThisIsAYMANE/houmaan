@@ -279,7 +279,7 @@ function CasinoPageContent() {
     switch (slug) {
       case 'lobby':
         return <Home className="w-4 h-4" />
-      case 'boz-originaux':
+      case 'shartbandee-originaux':
         return <Target className="w-4 h-4" />
       case 'bc-exclusif':
         return <Star className="w-4 h-4" />

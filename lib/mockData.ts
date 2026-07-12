@@ -437,10 +437,10 @@ export const mockGames = [
     id: '25',
     title: 'BC Original Game',
     slug: 'bc-original',
-    description: 'Exclusive boz.Topol original',
+    description: 'Exclusive Shartbandee original',
     thumbnail_url: undefined,
     game_url: 'https://example.com/games/bc-original',
-    provider_name: 'boz.Topol',
+    provider_name: 'Shartbandee',
     provider_slug: 'bc-game',
     provider_logo: undefined,
     player_count: 5678,
@@ -448,17 +448,17 @@ export const mockGames = [
     is_new: false,
     is_exclusive: false,
     is_original: true,
-    category_name: 'boz Originaux',
-    category_slug: 'boz-originaux'
+    category_name: 'Shartbandee Originaux',
+    category_slug: 'shartbandee-originaux'
   },
   {
     id: '2',
     title: 'BC Original Game',
     slug: 'bc-original',
-    description: 'Exclusive boz.Topol original',
+    description: 'Exclusive Shartbandee original',
     thumbnail_url: undefined,
     game_url: 'https://example.com/games/bc-original',
-    provider_name: 'boz.Topol',
+    provider_name: 'Shartbandee',
     provider_slug: 'bc-game',
     provider_logo: undefined,
     player_count: 5678,
@@ -466,8 +466,8 @@ export const mockGames = [
     is_new: false,
     is_exclusive: false,
     is_original: true,
-    category_name: 'boz Originaux',
-    category_slug: 'boz-originaux'
+    category_name: 'Shartbandee Originaux',
+    category_slug: 'shartbandee-originaux'
   },
   {
     id: '3',
@@ -545,7 +545,7 @@ export const mockGames = [
 
 export const mockCategories = [
   { id: '1', name: 'Tous les jeux', slug: 'lobby', order: 0 },
-  { id: '2', name: 'boz Originaux', slug: 'boz-originaux', order: 1 },
+  { id: '2', name: 'Shartbandee Originaux', slug: 'shartbandee-originaux', order: 1 },
   { id: '3', name: 'BC Exclusif', slug: 'bc-exclusif', order: 2 },
   { id: '4', name: 'Jeux populaires', slug: 'popular', order: 3 },
   { id: '5', name: 'Machines à sous', slug: 'slots', order: 4 },

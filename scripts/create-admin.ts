@@ -3,7 +3,7 @@ import { hashPassword } from '../lib/auth'
 import { nanoid } from 'nanoid'
 
 async function createAdmin() {
-  const email = process.argv[2] || 'admin@boztopol.com'
+  const email = process.argv[2] || 'admin@shartbandee.com'
   const password = process.argv[3] || 'admin123'
   const username = process.argv[4] || 'admin'
 

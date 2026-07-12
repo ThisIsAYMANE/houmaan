@@ -33,8 +33,8 @@ const depositSchema = z.object({
 // For production use a live rate service. EUR ≈ 0.10 USD historically.
 const FIAT_TO_USD: Record<string, number> = {
   USD: 1,
-  EUR: 0.10,
   EUR: 1.08,
+  MAD: 0.099,
 }
 
 function toUSDT(amount: number, currency: string): number {
