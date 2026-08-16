@@ -32,21 +32,26 @@ interface UserProfile {
 }
 
 const medalTypes = [
-  { type: 'first_deposit', label: 'Premier dépôt', icon: '💰' },
-  { type: 'first_bet', label: 'Premier pari', icon: '🎯' },
-  { type: 'first_win', label: 'Première victoire', icon: '🏆' },
-  { type: 'big_win', label: 'Gros gain', icon: '💎' },
-  { type: 'loyalty', label: 'Fidélité', icon: '⭐' },
-  { type: 'streak', label: 'Série', icon: '🔥' },
-  { type: 'social', label: 'Social', icon: '👥' },
-  { type: 'achievement', label: 'Réalisations', icon: '🎖️' },
+  { type: 'first_deposit', label: 'Premier dépôt', icon: 'Wallet' },
+  { type: 'first_bet', label: 'Premier pari', icon: 'Target' },
+  { type: 'first_win', label: 'Première victoire', icon: 'Trophy' },
+  { type: 'big_win', label: 'Gros gain', icon: 'Diamond' },
+  { type: 'loyalty', label: 'Fidélité', icon: 'Star' },
+  { type: 'streak', label: 'Série', icon: 'Flame' },
+  { type: 'social', label: 'Social', icon: 'Users' },
+  { type: 'achievement', label: 'Réalisations', icon: 'Award' },
 ]
 
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
-  const { user: authUser, sessionToken } = useAuthStore()
+  const { user: authUser, sessionToken, setUser } = useAuthStore()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
+  const [displayNameInput, setDisplayNameInput] = useState('')
+  const [savingName, setSavingName] = useState(false)
+
+  // Detect wallet users: their email is auto-generated as wallet_<hex>_<num>
+  const isWalletUser = !!(authUser?.email?.startsWith('wallet_'))
 
   useEffect(() => {
     if (isOpen && sessionToken) {
@@ -79,12 +84,45 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
   }
 
+  const handleSaveDisplayName = async () => {
+    if (!displayNameInput.trim() || !sessionToken) return
+    setSavingName(true)
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({ username: displayNameInput.trim() }),
+      })
+      if (res.ok) {
+        setUser({ ...authUser!, username: displayNameInput.trim() })
+        setProfile((prev) =>
+          prev
+            ? { ...prev, user: { ...prev.user, username: displayNameInput.trim() } }
+            : prev
+        )
+        toast.success('Nom affiché mis à jour!')
+        setDisplayNameInput('')
+      } else {
+        toast.error('Erreur lors de la mise à jour')
+      }
+    } catch {
+      toast.error('Erreur réseau')
+    } finally {
+      setSavingName(false)
+    }
+  }
+
   if (!isOpen) return null
 
   const displayName =
-    profile?.profile?.firstName && profile?.profile?.lastName
-      ? `${profile.profile.firstName} ${profile.profile.lastName}`
-      : profile?.user.username || profile?.user.email || 'Utilisateur'
+    profile?.user.username
+      ? profile.user.username
+      : isWalletUser
+      ? 'Utilisateur Wallet'
+      : profile?.user.email || 'Utilisateur'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -149,6 +187,28 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   <h3 className="text-2xl font-bold text-text-primary">
                     {displayName}
                   </h3>
+
+                  {/* Wallet user: show name input if no username set */}
+                  {isWalletUser && !profile?.user.username && (
+                    <div className="mt-3 flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={displayNameInput}
+                        onChange={(e) => setDisplayNameInput(e.target.value)}
+                        placeholder="Choisir un pseudo..."
+                        maxLength={30}
+                        className="flex-1 px-3 py-2 bg-background-elevated border border-accent-primary/40 rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent-primary text-sm"
+                      />
+                      <button
+                        onClick={handleSaveDisplayName}
+                        disabled={!displayNameInput.trim() || savingName}
+                        className="px-4 py-2 bg-accent-primary text-white rounded-lg text-sm font-semibold hover:bg-accent-primary/90 disabled:opacity-50 transition-colors"
+                      >
+                        {savingName ? '...' : 'Enregistrer'}
+                      </button>
+                    </div>
+                  )}
+
                   <p className="text-text-secondary mt-1">
                     ID: {profile?.user.id.slice(0, 8)}...
                   </p>

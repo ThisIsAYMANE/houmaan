@@ -24,7 +24,7 @@ interface DepositData {
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: string }> = {
   pending: { label: 'Waiting for payment…', color: '#f59e0b', icon: '⏳' },
-  confirming: { label: 'Confirming on blockchain…', color: '#3b82f6', icon: '🔄' },
+  confirming: { label: 'Confirming on blockchain…', color: '#3b82f6', icon: 'refresh' },
   confirmed: { label: 'Payment confirmed!', color: '#00ff00', icon: '✅' },
   expired: { label: 'Deposit expired', color: '#ef4444', icon: '❌' },
   failed: { label: 'Transaction failed', color: '#ef4444', icon: '❌' },
@@ -191,7 +191,7 @@ export default function DepositStatus({
       {/* Success animation */}
       {status === 'confirmed' && (
         <div className="status-success-banner">
-          🎉 Your balance has been credited!
+          Your balance has been credited!
         </div>
       )}
 

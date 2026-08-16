@@ -1,5 +1,8 @@
 'use client'
 
+import { Gamepad2 } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
+
 interface GameActivity {
   id: string
   game_title: string
@@ -24,17 +27,19 @@ export default function GameActivityTable({
   activeTab = 'last-bet',
   onTabChange
 }: GameActivityTableProps) {
+  const { t } = useI18n()
+  
   const tabs = [
-    { id: 'last-bet' as const, label: 'Dernier pari' },
-    { id: 'top-roll' as const, label: 'Rouleau Haut' },
-    { id: 'betting-contest' as const, label: 'Concours de paris' }
+    { id: 'last-bet' as const, label: t('home.activityTabLastBet', 'Dernier pari') },
+    { id: 'top-roll' as const, label: t('home.activityTabTopRoll', 'Rouleau Haut') },
+    { id: 'betting-contest' as const, label: t('home.activityTabContest', 'Concours de paris') }
   ]
 
   return (
     <div className="bg-bg-secondary rounded-lg border border-border-primary p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-text-primary">Dernier tour et course</h2>
+        <h2 className="text-xl font-bold text-text-primary">{t('home.activityTitle', 'Dernier tour et course')}</h2>
         <div className="flex gap-2">
           {tabs.map((tab) => (
             <button
@@ -57,18 +62,18 @@ export default function GameActivityTable({
         <table className="w-full">
           <thead>
             <tr className="border-b border-border-primary">
-              <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary">Jeu</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary">Joueur</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold text-text-secondary">Montant du pari</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold text-text-secondary">Multiplicateur</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold text-text-secondary">Bénéfice</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary">{t('home.colGame', 'Jeu')}</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary">{t('home.colPlayer', 'Joueur')}</th>
+              <th className="text-right py-3 px-4 text-sm font-semibold text-text-secondary">{t('home.colBetAmount', 'Montant du pari')}</th>
+              <th className="text-right py-3 px-4 text-sm font-semibold text-text-secondary">{t('home.colMultiplier', 'Multiplicateur')}</th>
+              <th className="text-right py-3 px-4 text-sm font-semibold text-text-secondary">{t('home.colProfit', 'Bénéfice')}</th>
             </tr>
           </thead>
           <tbody>
             {activities.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-center py-8 text-text-secondary">
-                  Aucune activité récente
+                  {t('home.noRecentActivity', 'Aucune activité récente')}
                 </td>
               </tr>
             ) : (
@@ -81,7 +86,7 @@ export default function GameActivityTable({
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded bg-purple-500/20 flex items-center justify-center">
-                        <span className="text-purple-400 text-xs">🎮</span>
+                        <Gamepad2 className="w-3 h-3 text-purple-400" />
                       </div>
                       <span className="text-sm text-text-primary font-medium">
                         {activity.game_title}

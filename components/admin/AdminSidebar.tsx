@@ -63,7 +63,7 @@ export default function AdminSidebar() {
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 bg-gray-800 text-white rounded-lg border border-gray-700"
+          className="p-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-white rounded-lg border border-gray-200 dark:border-gray-700 shadow"
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -75,16 +75,16 @@ export default function AdminSidebar() {
           fixed top-0 left-0 z-40 h-screen transition-transform
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0
-          w-64 bg-gray-800 border-r border-gray-700
+          w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-colors
         `}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-700">
-            <h1 className="text-xl font-bold text-white">Shartbandee</h1>
+          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Shartbandee</h1>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="lg:hidden text-gray-400 hover:text-white"
+              className="lg:hidden text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             >
               <X className="w-5 h-5" />
             </button>
@@ -108,7 +108,7 @@ export default function AdminSidebar() {
                     ${
                       isActive
                         ? 'bg-green-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                     }
                   `}
                 >
@@ -125,10 +125,10 @@ export default function AdminSidebar() {
           </nav>
 
           {/* Logout */}
-          <div className="p-4 border-t border-gray-700">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center px-4 py-3 rounded-lg text-red-400 hover:bg-gray-700 transition-colors"
+              className="w-full flex items-center px-4 py-3 rounded-lg text-red-500 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <LogOut className="w-5 h-5 mr-3" />
               <span className="font-medium">Déconnexion</span>

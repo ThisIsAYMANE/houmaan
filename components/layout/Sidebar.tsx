@@ -27,6 +27,7 @@ import {
   Target,
 } from 'lucide-react'
 import BCJetonCard from './BCJetonCard'
+import { useI18n } from '@/lib/i18n'
 
 interface SidebarProps {
   isOpen: boolean
@@ -49,76 +50,79 @@ interface NavSection {
   isMainNav?: boolean
 }
 
-const navigation: NavSection[] = [
-  {
-    isMainNav: true,
-    items: [
-      {
-        label: 'Casino',
-        href: '/casino',
-        icon: Dice6,
-        items: [
-          { label: 'Favoris', href: '/casino?category=favorites' },
-          { label: 'Récent', href: '/casino?category=recent' },
-          { label: 'Shartbandee Originals', href: '/casino?category=shartbandee-originals' },
-          { label: 'Shartbandee Exclusive', href: '/casino?category=shartbandee-exclusif' },
-          { label: 'Jeux populaires', href: '/casino?category=popular' },
-          { label: 'Machines à sous', href: '/casino?category=slots' },
-          { label: 'Casino en direct', href: '/casino?category=live-casino' },
-          { label: 'Fonctionnalité Buy-in', href: '/casino?category=buy-in' },
-          { label: 'Nouveautés', href: '/casino?category=new' },
-          { label: 'Jeux Burst', href: '/casino?category=burst' },
-          { label: 'Poker', href: '/casino?category=poker' },
-          { label: 'Bingo', href: '/casino?category=bingo' },
-          { label: 'Jeux de table', href: '/casino?category=table-games' },
-          { label: 'Blackjack', href: '/casino?category=blackjack' },
-          { label: 'Roulette', href: '/casino?category=roulette' },
-          { label: 'Bac', href: '/casino?category=baccarat' },
-        ],
-      },
-      {
-        label: 'Sports',
-        href: '/sports',
-        icon: Trophy,
-        items: [
-          { label: 'Football', href: '/sports?sport=football' },
-          { label: 'Basketball', href: '/sports?sport=basketball' },
-          { label: 'Tennis', href: '/sports?sport=tennis' },
-          { label: 'eFootball', href: '/sports?sport=efootball' },
-          { label: 'Tous les sports', href: '/sports' },
-        ],
-      },
-      { label: 'Anniversaire', href: '/anniversary', icon: Gift, badge: 'New +' },
-      { label: 'Loterie', href: '/lottery', icon: Ticket },
-      { label: 'Contrats à terme', href: '/futures', icon: TrendingUp },
-      { label: 'Promotions', href: '/promotions', icon: Gift },
-    ],
-  },
-  {
-    title: 'VIP Club',
-    items: [
-      { label: 'VIP Club', href: '/vip', icon: Crown },
-      { label: 'Bonus', href: '/bonuses', icon: Gift, badge: '+180%' },
-      { label: 'Centre de quêtes', href: '/quests', icon: Star },
-      { label: 'Parrainage', href: '/referrals', icon: Users },
-      { label: 'Forum', href: '/forum', icon: Users },
-    ],
-  },
-  {
-    title: 'Info',
-    items: [
-      { label: 'Jeux prouvé-équitable', href: '/provably-fair', icon: HelpCircle },
-      { label: 'Responsable Jeu d\'argent', href: '/responsible-gaming', icon: Info },
-      { label: 'Blog', href: '/blog', icon: BookOpen },
-      { label: 'Informations sur les paris', href: '/betting-info', icon: Info },
-    ],
-  },
-]
-
 export default function Sidebar({ isOpen, isCollapsed = false, onClose }: SidebarProps) {
   const pathname = usePathname()
+  const { t } = useI18n()
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set([0]))
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+
+  // Build navigation with translated labels
+  const navigation: NavSection[] = [
+    {
+      isMainNav: true,
+      items: [
+        {
+          label: t('nav.casino', 'Casino'),
+          href: '/casino',
+          icon: Dice6,
+          items: [
+            { label: t('sidebar.favorites', 'Favoris'), href: '/casino?category=favorites' },
+            { label: t('sidebar.recent', 'Récent'), href: '/casino?category=recent' },
+            { label: 'Shartbandee Originals', href: '/casino?category=shartbandee-originals' },
+            { label: 'Shartbandee Exclusive', href: '/casino?category=shartbandee-exclusif' },
+            { label: t('sidebar.popularGames', 'Jeux populaires'), href: '/casino?category=popular' },
+            { label: t('sidebar.slots', 'Machines à sous'), href: '/casino?category=slots' },
+            { label: t('sidebar.liveCasino', 'Casino en direct'), href: '/casino?category=live-casino' },
+            { label: t('sidebar.buyIn', 'Fonctionnalité Buy-in'), href: '/casino?category=buy-in' },
+            { label: t('sidebar.newGames', 'Nouveautés'), href: '/casino?category=new' },
+            { label: t('sidebar.burstGames', 'Jeux Burst'), href: '/casino?category=burst' },
+            { label: 'Poker', href: '/casino?category=poker' },
+            { label: 'Bingo', href: '/casino?category=bingo' },
+            { label: t('sidebar.tableGames', 'Jeux de table'), href: '/casino?category=table-games' },
+            { label: 'Blackjack', href: '/casino?category=blackjack' },
+            { label: 'Roulette', href: '/casino?category=roulette' },
+            { label: 'Baccarat', href: '/casino?category=baccarat' },
+          ],
+        },
+        {
+          label: t('nav.sports', 'Sports'),
+          href: '/sports',
+          icon: Trophy,
+          items: [
+            { label: t('sidebar.football', 'Football'), href: '/sports?sport=football' },
+            { label: t('sidebar.basketball', 'Basketball'), href: '/sports?sport=basketball' },
+            { label: 'Tennis', href: '/sports?sport=tennis' },
+            { label: 'eFootball', href: '/sports?sport=efootball' },
+            { label: t('sidebar.allSports', 'Tous les sports'), href: '/sports' },
+          ],
+        },
+        { label: t('sidebar.anniversary', 'Anniversaire'), href: '/anniversary', icon: Gift, badge: 'New +' },
+        { label: t('sidebar.lottery', 'Loterie'), href: '/lottery', icon: Ticket },
+        { label: t('sidebar.futures', 'Contrats à terme'), href: '/futures', icon: TrendingUp },
+        { label: t('sidebar.promotions', 'Promotions'), href: '/promotions', icon: Gift },
+      ],
+    },
+    {
+      title: 'VIP Club',
+      items: [
+        { label: 'VIP Club', href: '/vip', icon: Crown },
+        { label: t('nav.bonuses', 'Bonus'), href: '/bonuses', icon: Gift, badge: '+180%' },
+        { label: t('sidebar.quests', 'Centre de quêtes'), href: '/quests', icon: Star },
+        { label: t('sidebar.referrals', 'Parrainage'), href: '/referrals', icon: Users },
+        { label: 'Forum', href: '/forum', icon: Users },
+      ],
+    },
+    {
+      title: 'Info',
+      items: [
+        { label: t('sidebar.provablyFair', 'Jeux prouvé-équitable'), href: '/provably-fair', icon: HelpCircle },
+        { label: t('sidebar.responsibleGaming', 'Responsable Jeu d\'argent'), href: '/responsible-gaming', icon: Info },
+        { label: 'Blog', href: '/blog', icon: BookOpen },
+        { label: t('sidebar.bettingInfo', 'Informations sur les paris'), href: '/betting-info', icon: Info },
+      ],
+    },
+  ]
+
   
   // Auto-expand items if current path matches
   useEffect(() => {

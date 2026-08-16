@@ -3,17 +3,27 @@
 import { useState, useRef, useEffect } from 'react'
 import { User, ChevronDown, LogIn, UserCircle, Settings, LogOut, Wallet } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
+import { useI18n } from '@/lib/i18n'
 import LoginModal from '@/components/auth/LoginModal'
 import ProfileModal from '@/components/auth/ProfileModal'
 import toast from 'react-hot-toast'
 
-export default function ProfileDropdown() {
+
+interface ProfileDropdownProps {
+  onOpenDeposit: () => void
+}
+
+export default function ProfileDropdown({ onOpenDeposit }: ProfileDropdownProps) {
+  const router = useRouter()
+  const { t } = useI18n()
   const [isOpen, setIsOpen] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showProfileModal, setShowProfileModal] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { user, isAuthenticated, sessionToken, logout } = useAuthStore()
+
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -44,6 +54,7 @@ export default function ProfileDropdown() {
       logout()
       toast.success('Déconnexion réussie')
       setIsOpen(false)
+      router.push('/')
     } catch (error) {
       toast.error('Erreur lors de la déconnexion')
     }
@@ -87,16 +98,18 @@ export default function ProfileDropdown() {
                 className="w-full flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors text-left"
               >
                 <UserCircle className="w-4 h-4" />
-                <span>Mon profil</span>
+                <span>{t('nav.profile', 'Mon profil')}</span>
               </button>
-              <Link
-                href="/wallet"
-                className="flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors"
-                onClick={() => setIsOpen(false)}
+              <button
+                onClick={() => {
+                  setIsOpen(false)
+                  onOpenDeposit()
+                }}
+                className="w-full flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors text-left"
               >
                 <Wallet className="w-4 h-4" />
-                <span>Portefeuille</span>
-              </Link>
+                <span>{t('nav.wallet', 'Portefeuille')}</span>
+              </button>
               <div className="border-t border-background-secondary my-1"></div>
               <Link
                 href="/settings"
@@ -104,7 +117,7 @@ export default function ProfileDropdown() {
                 onClick={() => setIsOpen(false)}
               >
                 <Settings className="w-4 h-4" />
-                <span>Paramètres</span>
+                <span>{t('nav.settings', 'Paramètres')}</span>
               </Link>
               <div className="border-t border-background-secondary my-1"></div>
               <button
@@ -112,7 +125,7 @@ export default function ProfileDropdown() {
                 className="w-full flex items-center gap-3 px-4 py-2 text-text-primary hover:bg-background-secondary transition-colors text-left"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Déconnexion</span>
+                <span>{t('nav.logout', 'Déconnexion')}</span>
               </button>
             </div>
           )}
@@ -123,13 +136,13 @@ export default function ProfileDropdown() {
             onClick={() => setShowLoginModal(true)}
             className="px-4 py-2 bg-bg-secondary border border-border-primary rounded-lg text-white font-semibold hover:bg-bg-tertiary transition-colors"
           >
-            Se connecter
+            {t('nav.login', 'Se connecter')}
           </button>
           <Link
             href="/register"
             className="px-4 py-2 bg-green-500 rounded-lg text-black font-semibold hover:bg-green-600 transition-colors"
           >
-            S'inscrire
+            {t('nav.register', "S'inscrire")}
           </Link>
         </div>
       )}

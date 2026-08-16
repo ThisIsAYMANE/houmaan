@@ -2,15 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query, queryOne } from '@/lib/db'
 import { nanoid } from 'nanoid'
 
-// Get user from session
+// Get user from Authorization: Bearer header (preferred) or session cookie fallback
 async function getUserId(request: NextRequest): Promise<string | null> {
-  const sessionCookie = request.cookies.get('session')
-  if (!sessionCookie) return null
+  const authHeader = request.headers.get('authorization')
+  const sessionToken = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : request.cookies.get('session')?.value
+
+  if (!sessionToken) return null
   
   try {
     const session = await queryOne<{ user_id: string }>(
       'SELECT user_id FROM sessions WHERE session_token = ? AND expires > CURRENT_TIMESTAMP',
-      [sessionCookie.value]
+      [sessionToken]
     )
     return session?.user_id || null
   } catch {

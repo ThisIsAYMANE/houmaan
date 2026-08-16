@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, FileText, Calendar, TrendingUp, Users, DollarSign, Gamepad2 } from 'lucide-react'
+import { Download, FileText, Calendar, TrendingUp, Users, DollarSign, Gamepad2, Gift, ShieldAlert } from 'lucide-react'
 import { exportBettingReport, exportCasinoReport, exportTransactionsReport, exportUsersReport } from '@/lib/export-utils'
+import toast from 'react-hot-toast'
 
 export default function ReportsPage() {
   const [generating, setGenerating] = useState(false)
@@ -23,42 +24,44 @@ export default function ReportsPage() {
       const data = await response.json()
       if (data.success && data.data) {
         switch (type) {
-          case 'betting':
-            exportBettingReport(data.data)
-            break
-          case 'casino':
-            exportCasinoReport(data.data)
-            break
-          case 'transactions':
-            exportTransactionsReport(data.data)
-            break
-          case 'users':
-            exportUsersReport(data.data)
-            break
+          case 'betting': exportBettingReport(data.data); break
+          case 'casino': exportCasinoReport(data.data); break
+          case 'transactions': exportTransactionsReport(data.data); break
+          case 'users': exportUsersReport(data.data); break
+          default:
+            // Generic CSV download for bonus/fraud reports
+            downloadCsv(data.data, `${type}_report_${new Date().toISOString().split('T')[0]}.json`)
         }
-        alert('✅ Report generated successfully!')
+        toast.success(`Rapport "${type}" téléchargé avec succès`)
       } else {
-        alert('❌ No data found for the selected period')
+        toast.error('Aucune donnée pour la période sélectionnée')
       }
-    } catch (error) {
-      alert('❌ Failed to generate report')
+    } catch {
+      toast.error('Impossible de générer le rapport')
     } finally {
       setGenerating(false)
     }
   }
 
+  const downloadCsv = (data: any, filename: string) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Reports & Export</h1>
-        <p className="text-gray-400 mt-2">Generate and download detailed reports</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Rapports & Export</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Générez et téléchargez des rapports détaillés</p>
       </div>
 
       {/* Date Range */}
-      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3 mb-4">
           <Calendar className="w-5 h-5 text-green-400" />
-          <h2 className="text-xl font-bold text-white">Date Range Filter</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Filtre par date</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -145,6 +148,40 @@ export default function ReportsPage() {
           >
             <Download className="w-4 h-4" />
             Generate CSV
+          </button>
+        </div>
+
+        {/* Bonus Report — Phase 2B */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-3">
+            <Gift className="w-8 h-8 text-purple-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Rapport Bonus</h3>
+          </div>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Historique des bonus attribués, progrès de mise et statuts</p>
+          <button
+            onClick={() => generateReport('bonuses')}
+            disabled={generating}
+            className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+          >
+            <Download className="w-4 h-4" />
+            Télécharger JSON
+          </button>
+        </div>
+
+        {/* Fraud Report — Phase 2B */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-3">
+            <ShieldAlert className="w-8 h-8 text-red-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Rapport Fraude</h3>
+          </div>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Comptes liés, paris suspects et alertes détectées</p>
+          <button
+            onClick={() => generateReport('fraud')}
+            disabled={generating}
+            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+          >
+            <Download className="w-4 h-4" />
+            Télécharger JSON
           </button>
         </div>
       </div>

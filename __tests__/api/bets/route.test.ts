@@ -1,3 +1,4 @@
+/** @jest-environment node */
 /**
  * Bets API Tests
  */
@@ -12,7 +13,8 @@ jest.mock('nanoid', () => ({
 
 describe('Bets API', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.resetAllMocks()
+    require('nanoid').nanoid.mockReturnValue('mock-bet-id')
   })
 
   describe('POST /api/bets', () => {
@@ -20,34 +22,28 @@ describe('Bets API', () => {
       const mockQueryOne = queryOne as jest.MockedFunction<typeof queryOne>
       const mockQuery = query as jest.MockedFunction<typeof query>
 
-      // Mock session check
+      // 1. Session check
       mockQueryOne.mockResolvedValueOnce({ user_id: 'user-123' })
-      // Mock pending bets check
+      // 2. Pending bets check
       mockQueryOne.mockResolvedValueOnce({ count: 0 })
-      // Mock odds validation
-      mockQueryOne.mockResolvedValueOnce({ odds_value: 2.5 })
-      // Mock wallet balance
-      mockQueryOne.mockResolvedValueOnce({ balance: 1000 })
-      // Mock balance deduction
+      // 3. Atomic UPDATE balance (succeeds)
       mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 })
-      // Mock updated balance
+      // 4. Get updated balance
       mockQueryOne.mockResolvedValueOnce({ balance: 900 })
-      // Mock bet creation
+      // 5. Bet creation insert
       mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 })
 
       const request = new NextRequest('http://localhost/api/bets', {
         method: 'POST',
         headers: {
-          cookie: 'session=mock-session-token',
+          Authorization: 'Bearer mock-session-token',
         },
         body: JSON.stringify({
           betType: 'single',
           matchId: 'match-123',
-          marketId: 'market-123',
           selection: 'home',
           odds: 2.5,
           amount: 100,
-          currency: 'MAD',
         }),
       })
 
@@ -55,7 +51,7 @@ describe('Bets API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.betId).toBeDefined()
+      expect(data.betId).toBe('mock-bet-id')
       expect(data.status).toBe('pending')
     })
 
@@ -63,16 +59,19 @@ describe('Bets API', () => {
       const mockQueryOne = queryOne as jest.MockedFunction<typeof queryOne>
       const mockQuery = query as jest.MockedFunction<typeof query>
 
+      // 1. Session check
       mockQueryOne.mockResolvedValueOnce({ user_id: 'user-123' })
+      // 2. Pending bets check
       mockQueryOne.mockResolvedValueOnce({ count: 0 })
-      mockQueryOne.mockResolvedValueOnce({ odds_value: 2.5 })
-      mockQueryOne.mockResolvedValueOnce({ balance: 50 }) // Insufficient
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 }) // Deduction fails
+      // 3. Atomic UPDATE balance (fails: rowCount = 0)
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 })
+      // 4. Select balance fallback in deductWalletBalance -> returns 50 (insufficient)
+      mockQueryOne.mockResolvedValueOnce({ balance: 50 })
 
       const request = new NextRequest('http://localhost/api/bets', {
         method: 'POST',
         headers: {
-          cookie: 'session=mock-session-token',
+          Authorization: 'Bearer mock-session-token',
         },
         body: JSON.stringify({
           betType: 'single',
@@ -87,7 +86,8 @@ describe('Bets API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data.error).toContain('Insufficient balance')
+      const errorMsg = typeof data.error === 'string' ? data.error : data.error?.message
+      expect(errorMsg).toContain('Insufficient balance')
     })
 
     it('should reject bet below minimum amount', async () => {
@@ -99,7 +99,7 @@ describe('Bets API', () => {
       const request = new NextRequest('http://localhost/api/bets', {
         method: 'POST',
         headers: {
-          cookie: 'session=mock-session-token',
+          Authorization: 'Bearer mock-session-token',
         },
         body: JSON.stringify({
           betType: 'single',
@@ -114,7 +114,8 @@ describe('Bets API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data.error).toContain('Minimum bet')
+      const errorMsg = typeof data.error === 'string' ? data.error : data.error?.message
+      expect(errorMsg).toContain('Minimum bet')
     })
 
     it('should reject unauthorized requests', async () => {
@@ -133,7 +134,8 @@ describe('Bets API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(401)
-      expect(data.error).toBe('Unauthorized')
+      const errorMsg = typeof data.error === 'string' ? data.error : data.error?.message
+      expect(errorMsg).toBe('Unauthorized')
     })
   })
 
@@ -158,7 +160,7 @@ describe('Bets API', () => {
       const request = new NextRequest('http://localhost/api/bets', {
         method: 'GET',
         headers: {
-          cookie: 'session=mock-session-token',
+          Authorization: 'Bearer mock-session-token',
         },
       })
 
@@ -171,8 +173,3 @@ describe('Bets API', () => {
     })
   })
 })
-
-
-
-
-

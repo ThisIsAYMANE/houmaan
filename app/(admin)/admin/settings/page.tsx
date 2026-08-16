@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Save, Bell, Shield, Globe, CreditCard, Database } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Save, Bell, Shield, Globe, CreditCard, Database, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function SettingsPage() {
@@ -15,25 +15,103 @@ export default function SettingsPage() {
     currency: 'EUR',
     language: 'fr',
     timezone: 'Africa/Casablanca',
-    minDeposit: 100,
+    minDeposit: 20,
     maxDeposit: 100000,
-    minWithdrawal: 500,
+    minWithdrawal: 20,
     maxWithdrawal: 50000,
   })
-
   const [loading, setLoading] = useState(false)
+  const [initialLoad, setInitialLoad] = useState(true)
 
+  // Phase 2B: Load real settings from DB on mount
+  useEffect(() => {
+    const token = localStorage.getItem('admin_session_token')
+    fetch('/api/admin/settings', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data) {
+          const s = d.data
+          setSettings(prev => ({
+            ...prev,
+            siteName: s.site_name ?? prev.siteName,
+            siteUrl: s.site_url ?? prev.siteUrl,
+            maintenanceMode: s.maintenance_mode === 'true',
+            registrationEnabled: s.registration_enabled !== 'false',
+            currency: s.default_currency ?? prev.currency,
+            language: s.default_language ?? prev.language,
+            timezone: s.timezone ?? prev.timezone,
+            minDeposit: Number(s.min_deposit ?? prev.minDeposit),
+            maxDeposit: Number(s.max_deposit ?? prev.maxDeposit),
+            minWithdrawal: Number(s.min_withdrawal ?? prev.minWithdrawal),
+            maxWithdrawal: Number(s.max_withdrawal ?? prev.maxWithdrawal),
+          }))
+        }
+      })
+      .catch(() => {})
+      .finally(() => setInitialLoad(false))
+  }, [])
+
+  // Phase 2B: Real API save
   const handleSave = async () => {
+    if (settings.maintenanceMode) {
+      const confirmed = window.confirm(
+        '⚠️ Mode maintenance\n\nTous les utilisateurs non-administrateurs seront bloqués. Confirmer ?'
+      )
+      if (!confirmed) return
+    }
     setLoading(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      toast.success('Paramètres sauvegardés avec succès')
-    } catch (error) {
-      toast.error('Erreur lors de la sauvegarde')
+      const token = localStorage.getItem('admin_session_token')
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          site_name: settings.siteName,
+          site_url: settings.siteUrl,
+          maintenance_mode: String(settings.maintenanceMode),
+          registration_enabled: String(settings.registrationEnabled),
+          default_currency: settings.currency,
+          default_language: settings.language,
+          timezone: settings.timezone,
+          min_deposit: String(settings.minDeposit),
+          max_deposit: String(settings.maxDeposit),
+          min_withdrawal: String(settings.minWithdrawal),
+          max_withdrawal: String(settings.maxWithdrawal),
+        }),
+      })
+      if (res.ok) {
+        toast.success('Paramètres sauvegardés')
+        // Re-fetch from server to update UI with confirmed values
+        const refreshRes = await fetch('/api/admin/settings', { headers: { Authorization: `Bearer ${token}` } })
+        const refreshData = await refreshRes.json()
+        if (refreshData.success && refreshData.data) {
+          const s = refreshData.data
+          setSettings(prev => ({
+            ...prev,
+            siteName: s.site_name ?? prev.siteName,
+            siteUrl: s.site_url ?? prev.siteUrl,
+            maintenanceMode: s.maintenance_mode === 'true',
+            registrationEnabled: s.registration_enabled !== 'false',
+            currency: s.default_currency ?? prev.currency,
+            language: s.default_language ?? prev.language,
+            timezone: s.timezone ?? prev.timezone,
+            minDeposit: Number(s.min_deposit ?? prev.minDeposit),
+            maxDeposit: Number(s.max_deposit ?? prev.maxDeposit),
+            minWithdrawal: Number(s.min_withdrawal ?? prev.minWithdrawal),
+            maxWithdrawal: Number(s.max_withdrawal ?? prev.maxWithdrawal),
+          }))
+        }
+      }
+      else toast.error('Erreur lors de la sauvegarde')
+    } catch {
+      toast.error('Erreur réseau')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (initialLoad) {
+    return <div className="flex items-center justify-center h-64 text-gray-400">Chargement des paramètres...</div>
   }
 
   return (
@@ -41,8 +119,8 @@ export default function SettingsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Paramètres</h1>
-          <p className="text-gray-400 mt-2">Gérer les paramètres de la plateforme</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Paramètres</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Gérer les paramètres de la plateforme</p>
         </div>
         <button
           onClick={handleSave}
@@ -58,10 +136,10 @@ export default function SettingsPage() {
         {/* Main Settings */}
         <div className="lg:col-span-2 space-y-6">
           {/* General Settings */}
-          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3 mb-6">
               <Globe className="w-5 h-5 text-green-400" />
-              <h2 className="text-xl font-bold text-white">Paramètres généraux</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Paramètres généraux</h2>
             </div>
             <div className="space-y-4">
               <div>

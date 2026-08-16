@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Check, Trash2, CheckCheck, X } from 'lucide-react'
+import { Bell, Check, Trash2, CheckCheck, X, Star, TrendingDown, Wallet, Gift, Megaphone, AlertTriangle, Trophy, RefreshCw } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
 interface Notification {
@@ -111,31 +111,31 @@ export default function NotificationBell() {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'bet_won':
-        return '🎉'
+        return <Trophy className="w-5 h-5 text-yellow-400" />
       case 'bet_lost':
-        return '📉'
+        return <TrendingDown className="w-5 h-5 text-red-400" />
       case 'bet_placed':
-        return '✅'
+        return <Check className="w-5 h-5 text-green-400" />
       case 'bet_cashout':
-        return '💰'
+        return <Wallet className="w-5 h-5 text-blue-400" />
       case 'deposit_confirmed':
-        return '✅'
+        return <Check className="w-5 h-5 text-green-400" />
       case 'deposit_pending':
-        return '⏳'
+        return <RefreshCw className="w-5 h-5 text-yellow-400" />
       case 'withdrawal_processed':
-        return '✅'
+        return <Check className="w-5 h-5 text-green-400" />
       case 'withdrawal_pending':
-        return '⏳'
+        return <RefreshCw className="w-5 h-5 text-yellow-400" />
       case 'bonus_received':
-        return '🎁'
+        return <Gift className="w-5 h-5 text-purple-400" />
       case 'tier_upgraded':
-        return '⭐'
+        return <Star className="w-5 h-5 text-yellow-400" />
       case 'admin_alert':
-        return '⚠️'
+        return <AlertTriangle className="w-5 h-5 text-orange-400" />
       case 'system_message':
-        return '📢'
+        return <Megaphone className="w-5 h-5 text-blue-400" />
       default:
-        return '🔔'
+        return <Bell className="w-5 h-5 text-text-secondary" />
     }
   }
 

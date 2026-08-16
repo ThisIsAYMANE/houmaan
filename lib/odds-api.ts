@@ -76,6 +76,7 @@ export function getOddsApiConfig(): OddsApiConfig {
 
 /**
  * Make a request to the Odds API
+ * Logs quota usage headers on every response.
  */
 async function makeOddsApiRequest<T>(
   endpoint: string,
@@ -105,6 +106,17 @@ async function makeOddsApiRequest<T>(
     },
   })
 
+  // ── Quota tracking ────────────────────────────────────────────
+  const remaining = response.headers.get('x-requests-remaining')
+  const used = response.headers.get('x-requests-used')
+  const last = response.headers.get('x-requests-last')
+  if (remaining !== null) {
+    console.log(`[OddsAPI] Quota — used: ${used}, remaining: ${remaining}, last call cost: ${last}`)
+    if (parseInt(remaining) < 50) {
+      console.warn(`[OddsAPI] ⚠️  LOW QUOTA: only ${remaining} requests remaining!`)
+    }
+  }
+
   if (!response.ok) {
     const errorText = await response.text()
     let errorMessage = `Odds API request failed: ${response.status} ${response.statusText}`
@@ -113,7 +125,6 @@ async function makeOddsApiRequest<T>(
       const errorData = JSON.parse(errorText)
       errorMessage = errorData.message || errorData.detail || errorMessage
     } catch {
-      // If response is not JSON, use the text
       if (errorText) {
         errorMessage = errorText
       }
@@ -123,7 +134,7 @@ async function makeOddsApiRequest<T>(
       status: response.status,
       statusText: response.statusText,
       errorMessage,
-      url: url.toString(),
+      url: url.toString().replace(config.apiKey, '***'),
     })
 
     throw new Error(errorMessage)
@@ -134,8 +145,6 @@ async function makeOddsApiRequest<T>(
 
 /**
  * GET /sports - Get available sports
- * 
- * Returns a list of sports available in your subscription
  */
 export async function getSports(): Promise<Sport[]> {
   try {
@@ -151,11 +160,11 @@ export async function getSports(): Promise<Sport[]> {
  * GET /sports/{sport}/odds - Get odds for a sport
  * 
  * @param sportKey - Sport key (e.g., 'americanfootball_nfl')
- * @param options - Request options
- * @param options.regions - Comma-separated list of regions (e.g., 'us', 'eu', 'uk')
- * @param options.markets - Comma-separated list of markets (e.g., 'h2h', 'spreads', 'totals')
- * @param options.oddsFormat - 'american' or 'decimal' (default: 'american')
- * @param options.dateFormat - 'iso' or 'unix' (default: 'iso')
+ * @param options.regions - Comma-separated regions. Default: 'eu,uk,us' (covers soccer bookmakers)
+ * @param options.markets - Comma-separated markets. Default: 'h2h'
+ * @param options.oddsFormat - 'decimal' (default, no conversion needed) or 'american'
+ * @param options.commenceTimeFrom - ISO 8601 UTC. Filter events starting after this time.
+ * @param options.commenceTimeTo - ISO 8601 UTC. Filter events starting before this time.
  */
 export async function getSportOdds(
   sportKey: string,
@@ -164,6 +173,8 @@ export async function getSportOdds(
     markets?: string
     oddsFormat?: 'american' | 'decimal'
     dateFormat?: 'iso' | 'unix'
+    commenceTimeFrom?: string
+    commenceTimeTo?: string
   }
 ): Promise<Event[]> {
   try {
@@ -176,13 +187,20 @@ export async function getSportOdds(
     if (options?.markets) {
       params.markets = options.markets
     }
-    
-    if (options?.oddsFormat) {
-      params.oddsFormat = options.oddsFormat
-    }
+
+    // Default to decimal to avoid conversion overhead
+    params.oddsFormat = options?.oddsFormat ?? 'decimal'
     
     if (options?.dateFormat) {
       params.dateFormat = options.dateFormat
+    }
+
+    if (options?.commenceTimeFrom) {
+      params.commenceTimeFrom = options.commenceTimeFrom
+    }
+
+    if (options?.commenceTimeTo) {
+      params.commenceTimeTo = options.commenceTimeTo
     }
 
     const events = await makeOddsApiRequest<Event[]>(`/sports/${sportKey}/odds`, params)
@@ -195,8 +213,6 @@ export async function getSportOdds(
 
 /**
  * GET /sports/{sport}/scores - Get scores for a sport
- * 
- * Returns completed events with scores
  */
 export async function getSportScores(
   sportKey: string,
@@ -225,7 +241,9 @@ export async function getSportScores(
 }
 
 /**
- * GET /sports/{sport}/events/{eventId} - Get odds for a specific event
+ * GET /sports/{sport}/events/{eventId}/odds - Get odds for a specific event
+ * 
+ * NOTE: The /odds suffix is required — this was previously a bug (missing /odds).
  */
 export async function getEventOdds(
   sportKey: string,
@@ -247,17 +265,16 @@ export async function getEventOdds(
     if (options?.markets) {
       params.markets = options.markets
     }
-    
-    if (options?.oddsFormat) {
-      params.oddsFormat = options.oddsFormat
-    }
+
+    params.oddsFormat = options?.oddsFormat ?? 'decimal'
     
     if (options?.dateFormat) {
       params.dateFormat = options.dateFormat
     }
 
+    // FIXED: correct endpoint is /sports/{sport}/events/{eventId}/odds
     const event = await makeOddsApiRequest<Event>(
-      `/sports/${sportKey}/events/${eventId}`,
+      `/sports/${sportKey}/events/${eventId}/odds`,
       params
     )
     return event
@@ -272,9 +289,9 @@ export async function getEventOdds(
  */
 export function americanToDecimal(americanOdds: number): number {
   if (americanOdds > 0) {
-    return (americanOdds / 100) + 1
+    return parseFloat(((americanOdds / 100) + 1).toFixed(2))
   } else {
-    return (100 / Math.abs(americanOdds)) + 1
+    return parseFloat(((100 / Math.abs(americanOdds)) + 1).toFixed(2))
   }
 }
 
@@ -305,7 +322,6 @@ export function getBestOdds(bookmakers: Bookmaker[], marketKey: string): {
     return null
   }
 
-  // Find the outcome with the best odds (highest price for positive, lowest absolute for negative)
   let bestOutcome = market.outcomes[0]
   let bestBookmaker = bookmakers.find(b => 
     b.markets.some(m => m.key === marketKey && m.outcomes.includes(bestOutcome))
@@ -316,20 +332,8 @@ export function getBestOdds(bookmakers: Bookmaker[], marketKey: string): {
     if (!bookmakerMarket) continue
 
     for (const outcome of bookmakerMarket.outcomes) {
-      // For positive odds, higher is better
-      // For negative odds, less negative (closer to 0) is better
-      if (outcome.price > 0 && bestOutcome.price > 0) {
-        if (outcome.price > bestOutcome.price) {
-          bestOutcome = outcome
-          bestBookmaker = bookmaker.title
-        }
-      } else if (outcome.price < 0 && bestOutcome.price < 0) {
-        if (outcome.price > bestOutcome.price) {
-          bestOutcome = outcome
-          bestBookmaker = bookmaker.title
-        }
-      } else if (outcome.price > 0 && bestOutcome.price < 0) {
-        // Positive is generally better than negative
+      // Decimal odds: higher is always better
+      if (outcome.price > bestOutcome.price) {
         bestOutcome = outcome
         bestBookmaker = bookmaker.title
       }
@@ -343,5 +347,23 @@ export function getBestOdds(bookmakers: Bookmaker[], marketKey: string): {
   }
 }
 
+// ── Live Scores ──────────────────────────────────────────────────────────────
 
-
+/**
+ * Typed response shape returned by /sports/{sport}/scores
+ * Used by app/api/sports/scores/route.ts
+ */
+export interface ScoreEntry {
+  id: string
+  sport_key: string
+  sport_title: string
+  commence_time: string
+  completed: boolean
+  home_team: string
+  away_team: string
+  scores: Array<{
+    name: string   // team name
+    score: string  // e.g. "2"
+  }> | null
+  last_update: string | null
+}

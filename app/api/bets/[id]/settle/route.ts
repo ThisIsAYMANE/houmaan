@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query, queryOne } from '@/lib/db'
+import { checkBetAndGetEligibility, awardBetAndGet } from '@/lib/bet-and-get'
+import { createNotification } from '@/lib/notifications'
 
 // Admin authentication check (simplified)
 async function isAdmin(request: NextRequest): Promise<boolean> {
@@ -106,6 +108,29 @@ export async function POST(
       'SELECT balance FROM wallets WHERE user_id = ? AND currency = ?',
       [bet.user_id, bet.currency]
     )
+
+    // Phase 3: Non-blocking Bet & Get trigger — fire before return so it actually runs
+    // Capture userId in a typed local before the return so TS knows it's non-null
+    if (finalStatus === 'lost') {
+      const settledUserId: string = bet.user_id
+      const settledBetId: string = betId
+      ;(async () => {
+        try {
+          const eligibility = await checkBetAndGetEligibility(settledUserId, settledBetId)
+          if (eligibility.eligible) {
+            await awardBetAndGet(settledUserId)
+            await createNotification({
+              userId: settledUserId,
+              type: 'bonus_received',
+              title: 'Pari & Gain activé !',
+              message: 'Votre pari qualifiant a perdu — un bonus de 10 $ vous a été crédité. Placez votre pari bonus maintenant !',
+            }).catch(() => {})
+          }
+        } catch (e) {
+          console.error('[BetAndGet] Non-blocking trigger error:', e)
+        }
+      })()
+    }
 
     return NextResponse.json({
       message: 'Bet settled successfully',

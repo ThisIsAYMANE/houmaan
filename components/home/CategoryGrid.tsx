@@ -4,85 +4,90 @@ import Link from 'next/link'
 import { 
   Dice6, 
   Trophy, 
-  Coins, 
   Ticket, 
   TrendingUp, 
   Gamepad2,
-  Target
+  Target,
+  Layers,
+  Zap
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 interface CategoryCard {
   id: string
   title: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: LucideIcon
+  graphicIcon: LucideIcon // Issue #10: replaced emoji with Lucide icon
   href: string
   description?: string
   bgColor: 'green' | 'purple' | 'gray'
-  graphic: string
 }
 
-const categories: CategoryCard[] = [
-  {
-    id: 'casino',
-    title: 'CASINO',
-    icon: Dice6,
-    href: '/casino',
-    description: 'Plongez dans nos jeux internes, notre casino en direct et nos machines à sous',
-    bgColor: 'green',
-    graphic: '🎰'
-  },
-  {
-    id: 'sports',
-    title: 'SPORTS',
-    icon: Trophy,
-    href: '/sports',
-    description: 'Pariez sur le football, le cricket, la NFL, l\'eSport et plus de 80 sports !',
-    bgColor: 'purple',
-    graphic: '⚽'
-  },
-  {
-    id: 'poker',
-    title: 'POKER',
-    icon: Dice6,
-    href: '/poker',
-    bgColor: 'green',
-    graphic: '🃏'
-  },
-  {
-    id: 'course',
-    title: 'COURSE',
-    icon: Target,
-    href: '/course',
-    bgColor: 'gray',
-    graphic: '🐎'
-  },
-  {
-    id: 'loterie',
-    title: 'LOTERIE',
-    icon: Ticket,
-    href: '/lottery',
-    bgColor: 'green',
-    graphic: '🎫'
-  },
-  {
-    id: 'haut-bas',
-    title: 'HAUT BAS',
-    icon: TrendingUp,
-    href: '/haut-bas',
-    bgColor: 'green',
-    graphic: '📈'
-  },
-  {
-    id: 'bingo',
-    title: 'BINGO',
-    icon: Gamepad2,
-    href: '/bingo',
-    bgColor: 'purple',
-    graphic: '🎱'
-  }
-]
-
 export default function CategoryGrid() {
+  const { t } = useI18n()
+  
+  const categories: CategoryCard[] = [
+    {
+      id: 'casino',
+      title: t('home.catCasino', 'CASINO'),
+      icon: Dice6,
+      graphicIcon: Dice6,
+      href: '/casino',
+      description: t('home.catCasinoDesc', 'Plongez dans nos jeux internes, notre casino en direct et nos machines à sous'),
+      bgColor: 'green',
+    },
+    {
+      id: 'sports',
+      title: t('home.catSports', 'SPORTS'),
+      icon: Trophy,
+      graphicIcon: Trophy,
+      href: '/sports',
+      description: t('home.catSportsDesc', "Pariez sur le football, le cricket, la NFL, l'eSport et plus de 80 sports !"),
+      bgColor: 'purple',
+    },
+    {
+      id: 'poker',
+      title: t('home.catPoker', 'POKER'),
+      icon: Layers,
+      graphicIcon: Layers,
+      href: '/poker',
+      bgColor: 'green',
+    },
+    {
+      id: 'course',
+      title: t('home.catCourse', 'COURSE'),
+      icon: Zap,
+      graphicIcon: Zap,
+      href: '/course',
+      bgColor: 'gray',
+    },
+    {
+      id: 'loterie',
+      title: t('home.catLottery', 'LOTERIE'),
+      icon: Ticket,
+      graphicIcon: Ticket,
+      href: '/lottery',
+      bgColor: 'green',
+    },
+    {
+      id: 'haut-bas',
+      title: t('home.catUpdown', 'HAUT BAS'),
+      icon: TrendingUp,
+      graphicIcon: TrendingUp,
+      href: '/haut-bas',
+      bgColor: 'green',
+    },
+    {
+      id: 'bingo',
+      title: t('home.catBingo', 'BINGO'),
+      icon: Gamepad2,
+      graphicIcon: Gamepad2,
+      href: '/bingo',
+      bgColor: 'purple',
+    }
+  ]
+
   const getBgColor = (color: 'green' | 'purple' | 'gray') => {
     switch (color) {
       case 'green':
@@ -136,10 +141,10 @@ export default function CategoryGrid() {
                   )}
                 </div>
 
-                {/* Right Side - Graphic */}
+                {/* Right Side - Graphic Icon */}
                 <div className="flex items-center justify-end mt-4">
-                  <div className="text-7xl group-hover:scale-110 transition-transform duration-200">
-                    {category.graphic}
+                  <div className="group-hover:scale-110 transition-transform duration-200 opacity-40">
+                    {(() => { const G = category.graphicIcon; return <G className="w-20 h-20 text-white" /> })()}
                   </div>
                 </div>
               </div>
@@ -179,9 +184,9 @@ export default function CategoryGrid() {
                 {/* Title */}
                 <h3 className="text-sm font-bold text-white mb-1">{category.title}</h3>
 
-                {/* Graphic */}
-                <div className="text-3xl group-hover:scale-110 transition-transform duration-200">
-                  {category.graphic}
+                {/* Graphic Icon */}
+                <div className="text-3xl group-hover:scale-110 transition-transform duration-200 opacity-40">
+                  {(() => { const G = category.graphicIcon; return <G className="w-8 h-8 text-white" /> })()}
                 </div>
               </div>
 

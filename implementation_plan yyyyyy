@@ -1,0 +1,1016 @@
+# Shartbandee — Full Bug-Fix & Feature Implementation Plan
+
+## Background
+
+This plan addresses **12 user-reported issues** discovered during full testing, plus **additional issues identified during code analysis**. Each issue has been traced to its root cause in the codebase with a precise fix strategy.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> Issues #6, #11, and #12 touch real money flows (Slotegrator casino access, crypto wallet addresses, Odds API alignment). Review those sections carefully before approving execution.
+
+> [!WARNING]
+> Issue #8 (theme) requires a CSS variable overhaul. Approving this will affect every page's visual appearance.
+
+> [!CAUTION]
+> Issue #11: The Bitcoin address generation uses a randomly-seeded `MASTER_SEED` unless `BITCOIN_MASTER_SEED` is set in `.env`. This means every server restart generates addresses from a **different** HD wallet root — making previously-generated addresses unmonitorable. This is a critical security/reliability gap.
+
+---
+
+## Open Questions
+
+1. **Issue #6 (Slotegrator)**: Do you have a production `CASINO_MERCHANT_ID` + `CASINO_MERCHANT_KEY` + `CASINO_API_BASE_URL` configured in `.env`? The only way to know if access is restricted is to make a real test call.
+2. **Issue #11 (Bitcoin)**: Is `BITCOIN_MASTER_SEED` set in `.env`? If not, should we generate a fixed one now and write it there?
+3. **Issue #3 ("Modifier" buttons)**: The Settings page has "Email", "Username", "Password", "2FA", "Active Sessions", "Deposit Limits", "Auto-exclusion" modifier buttons — all static. Should all of them open inline edit forms, or only some (e.g., email + password)?
+4. **Issue #10 (Emojis)**: Flag emojis in `LanguageSwitcher` and `LanguageModal` are used to identify languages. Do you want to replace them with country flag icon components (e.g., `flag-icons` CSS library), or just remove the emoji flags and keep the language code text only?
+
+---
+
+## Proposed Changes
+
+---
+
+### 1 — Language Switching (Issue #1)
+
+**Root Cause:** The `LanguageSwitcher` correctly calls `setLocale()` which updates `localStorage` and context. However, **the page text never re-renders** because the rest of the app uses hardcoded French strings — none of the page components call `useI18n().t()`. The i18n system is built but unused in page content. Additionally, the Settings `LanguageModal` calls `onLanguageChange()` which only calls `updateProfile()` (API call to save to DB), but **never calls `setLocale()`** on the i18n context, so the header switcher and the page language never change.
+
+**Fix:**
+
+#### [MODIFY] [LanguageModal.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/components/settings/LanguageModal.tsx)
+- Import and call `useI18n().setLocale()` when a language is selected, in addition to the existing `onLanguageChange` callback.
+- Reduce currencies list to only `EUR` and `USD`.
+
+#### [MODIFY] [settings/page.tsx](file:///c:/Users/AYMANE MAALI/OneDrive/Bureau/houman-versel/app/settings/page.tsx)
+- Wire the `onLanguageChange` callback to also call `setLocale()` from `useI18n()`.
+
+#### [MODIFY] [Header.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/components/layout/Header.tsx)
+- The currency `<select>` in the header is completely static (no state, no onChange). Wire it to a global currency context or `localStorage`-persisted state. Reduce options to only `EUR` and `USD`.
+
+#### Root cause note on full i18n
+Full i18n (translating every page) would require wrapping every static string with `t()`. This is a large effort. For now, the fix ensures: (a) the language switcher state persists and the header reflects it, and (b) the LanguageModal in Settings actually applies the language change to the live context.
+
+---
+
+### 2 — Currency ("Devise") — EUR & USD Only (Issue #2)
+
+**Root Cause:** `LanguageModal.tsx` has 6 currencies (MAD, USD, EUR, GBP, BTC, ETH). The header `<select>` also has MAD, USD, EUR. Both need trimming to only EUR and USD, and need to actually persist the selection.
+
+**Fix:**
+
+#### [MODIFY] [LanguageModal.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/components/settings/LanguageModal.tsx)
+- Remove MAD, GBP, BTC, ETH from the `currencies` array. Keep only `EUR` and `USD`.
+
+#### [MODIFY] [Header.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/components/layout/Header.tsx)
+- Remove the MAD option. Add `onChange` handler that saves to localStorage and re-reads on mount.
+
+---
+
+### 3 — "Modifier" Buttons (Issue #3)
+
+**Root Cause:** All "Modifier" and "Configurer" buttons in [settings/page.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/app/settings/page.tsx) have no `onClick` handlers. The profile page is also a stub (`"Coming soon"`).
+
+**Fix:**
+
+#### [MODIFY] [settings/page.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/app/settings/page.tsx)
+- Add inline edit state for **Email**, **Username**, and **Password** fields.
+- Each "Modifier" click toggles an inline form with a text input and Save/Cancel buttons.
+- Save calls `PUT /api/user/profile` with the new value.
+- "2FA" → "Activer": open a modal or show a placeholder "coming soon" toast.
+- "Sessions actives" → "Voir": navigate to a sessions sub-page or show a modal listing active sessions.
+- "Limites de dépôt" + "Auto-exclusion" → "Configurer": open modals with form inputs.
+
+#### [MODIFY] [profile/page.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/app/profile/page.tsx)
+- Replace the "Coming soon" stub with a real profile page showing user info (username, email, registration date, balance) and a **pen icon** that enables inline editing. Wire to `GET /api/user/profile` and `PUT /api/user/profile`.
+
+---
+
+### 4 — Dummy Data (Real Madrid) in Match Info Page (Issue #4)
+
+**Root Cause:** [app/sports/matches/[id]/page.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/app/sports/matches/%5Bid%5D/page.tsx) has hardcoded `mockBettingMarkets` and `mockExpertTips` objects that reference "Real Madrid" and "FC Séville". The match header loads real data from the API, but all betting markets shown below it are always the same Real Madrid mock data, regardless of which match was loaded.
+
+**Fix:**
+
+#### [MODIFY] [app/sports/matches/[id]/page.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/app/sports/matches/%5Bid%5D/page.tsx)
+- Remove `mockBettingMarkets` and `mockExpertTips` constants entirely.
+- After fetching the match, make a second API call to `/api/sports/odds?matchId={id}&sportKey={sportKey}` to get real h2h, spreads, and totals markets.
+- Transform the Odds API bookmaker data into `BettingMarket[]` format.
+- Display real odds under the "Principal" tab; show "Aucune côte disponible" for tabs without data.
+- Remove the expert tips section, or replace it with a "Tendances du marché" section derived from actual bookmaker spread.
+
+#### [NEW] [app/api/sports/matches/[id]/route.ts](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/app/api/sports/matches/%5Bid%5D)
+- Currently this route exists but check if it returns full odds data with bookmakers array. If not, it needs to call `getEventOdds()` from `lib/odds-api.ts` with the sport key (passed as query param).
+
+---
+
+### 5 — Match Filtering: Live + Upcoming + Soccer (Issue #5)
+
+**Root Cause (multiple):**
+
+1. **Upcoming not showing in "TEMPS FORTS" tab**: In `sports/page.tsx`, `activeTab === 'highlights'` appends `is_live=true` to the API call. This correctly filters out upcoming. But the UI **only shows the "Populaire" section**, and `popularMatches` is built from `matches` which at this point only has live ones. The "UN PROGRAMME" tab fetches with `status=upcoming` but the `popularMatches` section always renders — it doesn't filter by tab.
+
+2. **Soccer not appearing**: The `/api/sports/matches/route.ts` fetches all active sports with `regions: 'us'` and `markets: 'h2h,spreads,totals'`. The Odds API only returns events if there are active bookmakers for that sport in the specified region. Soccer leagues (EPL, La Liga, etc.) may have very few US bookmakers with active odds. Switching to `regions: 'eu,uk,us'` and `markets: 'h2h'` will dramatically increase soccer coverage.
+
+3. **Status logic in transform**: `getMatchStatus()` in `odds-api-transform.ts` marks any match that started < 3 hours ago as `live` and anything beyond as `finished`. The Odds API **never returns completed games** — it only returns upcoming/live. So a game that started 3.5 hours ago would be classified as `finished` and filtered out of both tabs. This cutoff should be extended to cover typical game durations (e.g., 4-5 hours for NFL, 2 hours for soccer).
+
+**Fix:**
+
+#### [MODIFY] [app/api/sports/matches/route.ts](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/app/api/sports/matches/route.ts)
+- Change `regions` from `'us'` to `'eu,uk,us'` (covers more soccer bookmakers).
+- Change `markets` from `'h2h,spreads,totals'` to `'h2h'` (cheaper quota cost, more universal).
+- Add `commenceTimeFrom` and `commenceTimeTo` filters for upcoming matches (next 7 days).
+
+#### [MODIFY] [lib/odds-api-transform.ts](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/lib/odds-api-transform.ts)
+- In `getMatchStatus()`, extend the "live" window to 5 hours (covers NFL games), and add sport-specific duration overrides for soccer (2.5h), basketball (3h), etc.
+
+#### [MODIFY] [app/sports/page.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/app/sports/page.tsx)
+- Tab "TEMPS FORTS" should show both live and upcoming matches (all matches from `/api/sports/matches` with no status filter).
+- Tab "UN PROGRAMME" should show only upcoming (status=upcoming filter).
+- The "Populaire" grid should respect the current tab: in highlights show all, in programme show upcoming only.
+- Fix the sport filter: when clicking a sport category button, re-fetch with `sport_id` that passes the **actual Odds API sport key** (e.g., `soccer_epl`), not just the slug. Currently the sport list returns `id: sport.key` which is correct, but the filter button passes `sport.id` to `setSelectedSport()` — verify this chain is intact.
+
+---
+
+### 6 — Slotegrator Game Access (Issue #6)
+
+**Analysis of `lib/casino-api.ts`:**
+- The authentication (X-Sign HMAC-SHA1) is implemented correctly per Slotegrator GIS API v1.4.3 documentation.
+- `getCasinoConfig()` requires `CASINO_MERCHANT_ID`, `CASINO_MERCHANT_KEY`, `CASINO_API_BASE_URL` in `.env`.
+- If these are not set, every casino API call will throw and games will fail to load.
+- Slotegrator can restrict access in two ways: (1) IP whitelisting, (2) Merchant account status (trial/suspended).
+
+**Fix:**
+
+#### [NEW] Diagnostic API route `app/api/casino/test/route.ts`
+- Create a test endpoint that calls Slotegrator's `/self_validate` endpoint and returns the full response to diagnose whether access is working. The GIS API v1.4.3 PDF documents this endpoint.
+- Run this in dev to confirm whether credentials are valid and not blocked.
+
+#### [MODIFY] [lib/casino-api.ts](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/lib/casino-api.ts)
+- Add a `testConnection()` function that calls `/self_validate` and logs the full response including any error codes that indicate access restriction.
+- Document the Slotegrator error codes for restricted access (e.g., `403 Forbidden` = IP not whitelisted, `401` = invalid credentials).
+
+---
+
+### 7 — Profile Edit (Pen Icon) Not Working (Issue #7)
+
+**Root Cause:** `app/profile/page.tsx` is a 9-line stub that just says "Coming soon". The pen icon mentioned by the user may come from `ProfileDropdown.tsx` or `ProfileModal.tsx`. Let me note:
+
+#### [MODIFY] [app/profile/page.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/app/profile/page.tsx)
+- Full replacement: Real profile page with user data (avatar placeholder, username, email, join date, balance).
+- Pen icon next to each field opens an inline input.
+- Save calls `PUT /api/user/profile`.
+- Display betting history summary (total bets, wins, win rate).
+
+#### [CHECK] `components/auth/ProfileModal.tsx`
+- The pen icon may be inside the profile modal. Verify it has `onClick` handlers.
+
+---
+
+### 8 — Theme Switching Always Dark (Issue #8)
+
+**Root Cause:** `ThemeToggle.tsx` correctly adds/removes the `dark` class on `document.documentElement`. However, the CSS likely uses hardcoded dark-mode colors without checking the `dark` class. The app's `globals.css` and Tailwind config need to use `dark:` variants or CSS variable overrides triggered by `.dark` class.
+
+**Investigation needed:**
+
+#### [MODIFY] [app/globals.css](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/app/globals.css)
+- Inspect the current CSS custom properties (e.g., `--bg-primary`, `--text-primary`).
+- Add `.dark` and `:root` (light) rule sets that override the CSS variables.
+- Example:
+  ```css
+  :root { --bg-primary: #ffffff; --text-primary: #111; }
+  .dark { --bg-primary: #0f0f0f; --text-primary: #f0f0f0; }
+  ```
+
+#### [MODIFY] [tailwind.config.ts](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/tailwind.config.ts)
+- Ensure `darkMode: 'class'` is set (so `dark:` Tailwind variants work with the `.dark` class).
+
+#### [MODIFY] [ThemeToggle.tsx](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/components/settings/ThemeToggle.tsx)
+- The toggle logic itself is correct. The issue is CSS, not this component.
+
+---
+
+### 9 — Analyze Sports API Response (Issue #9)
+
+**Analysis (from code review and docs comparison):**
+
+The current implementation is largely correct but has these gaps vs. the API docs:
+
+| Gap | Details |
+|---|---|
+| Only `us` region used | Soccer bookmakers are mainly in `eu`/`uk`. Switch to `eu,uk,us`. |
+| `markets: 'h2h,spreads,totals'` always | `spreads`/`totals` are mainly US sports. For soccer, only `h2h` is reliable. Costs 3x quota vs 1x. |
+| No `commenceTimeFrom/To` filters | Without these, only the current round is returned. To get upcoming matches, add `commenceTimeFrom=now` and `commenceTimeTo=+7days`. |
+| `getEventOdds()` path is wrong | In `lib/odds-api.ts` line 260, the endpoint is `/sports/{sport}/events/{eventId}` — but the correct path for event odds is `/sports/{sport}/events/{eventId}/odds`. |
+| No scores endpoint usage | `/api/sports/scores` is defined but never called in the matches route. Live scores require this. |
+| `revalidate = 60` on matches route | OK for odds. But the sports-list has `revalidate = 3600` which is fine. |
+| No `x-requests-remaining` tracking | Response headers from Odds API should be logged to monitor quota. |
+| No `commenceTimeTo` for upcoming | Without it, upcoming matches are only next ~3 days (API default). |
+
+**Fix:**
+
+#### [MODIFY] [lib/odds-api.ts](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/lib/odds-api.ts)
+- Fix `getEventOdds()` endpoint path: change `/sports/${sportKey}/events/${eventId}` → `/sports/${sportKey}/events/${eventId}/odds`.
+- Add quota tracking: after each response, log `x-requests-remaining` and `x-requests-used` headers.
+- Add `commenceTimeFrom` and `commenceTimeTo` parameters to `getSportOdds()`.
+
+#### [NEW] `app/api/sports/scores/route.ts`
+- Add a scores endpoint that calls `getSportScores()` with `daysFrom=1` to get live game scores.
+- Join scores to matches by event `id` to display live scores.
+
+#### [MODIFY] [app/api/sports/matches/route.ts](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/app/api/sports/matches/route.ts)
+- Switch regions to `eu,uk,us`.
+- For soccer sports, use only `markets: 'h2h'`.
+- Add `commenceTimeFrom` (now) and `commenceTimeTo` (+7 days) for upcoming.
+
+---
+
+### 10 — Remove Emojis (Issue #10)
+
+**Files containing emojis (found via code search):**
+
+| File | Emojis |
+|---|---|
+| `components/wallet/DepositStatus.tsx` | 🔄, 🎉 |
+| `components/wallet/CryptoPaymentModal.tsx` | 🟡, 🔵, 🟣, 📥, 📤, 🔐, 💸 |
+| `components/wallet/ConnectWalletButton.tsx` | 🔗, 🚀 |
+| `components/layout/NotificationBell.tsx` | 🎉, 📉, 💰, 🎁, 📢, 🔔 |
+| `components/layout/AdBanner.tsx` | 🎁 |
+| `components/home/GameActivityTable.tsx` | 🎮 |
+| `components/home/CategoryGrid.tsx` | 🎰, 🐎, 🎫, 📈, 🎱 |
+| `components/auth/ProfileModal.tsx` | 💰, 🎯, 🏆, 💎, 🔥, 👥, 🎖️ |
+| `lib/i18n.tsx` | Flag emojis (🇫🇷, 🇬🇧, etc.) |
+| `components/layout/LanguageSwitcher.tsx` | Flag emojis via `currentLang.flag` |
+| `components/settings/LanguageModal.tsx` | Flag emojis via `lang.flag` |
+
+**Fix:** Replace each emoji with an equivalent **Lucide React icon** or a colored dot SVG:
+- 🔄 → `<RefreshCw />` (Lucide)
+- 🎉 → `<PartyPopper />` or `<Star />`
+- 📥/📤 → `<Download />` / `<Upload />` (already available)
+- 🔐 → `<Lock />`
+- 💸 → `<DollarSign />`
+- 🔗 → `<Link2 />`
+- 🚀 → `<Send />`
+- 💰 → `<Wallet />`
+- 🎁 → `<Gift />` (already imported in Sidebar)
+- 🎮 → `<Gamepad2 />` (already imported in Sidebar)
+- 🎯 → `<Target />` (already imported)
+- 🏆 → `<Trophy />` (already imported)
+- 🔥 → `<Flame />`
+- 📢 → `<Megaphone />` (already imported in match detail)
+- 🔔 → `<Bell />` (already imported)
+- Flag emojis → keep for now as language identifiers (or use `flag-icons` CSS library if desired)
+
+---
+
+### 11 — Crypto Destination Address Validity (Issue #11)
+
+**Analysis:**
+
+The Bitcoin address generation in `lib/bitcoin-wallet.ts` uses:
+- `bitcoinjs-lib` + `bip32` + `tiny-secp256k1` — these are real, industry-standard libraries.
+- **P2WPKH (Bech32)** format — real native SegWit addresses starting with `bc1` (mainnet) or `tb1` (testnet).
+- BIP44 derivation path `m/44'/{coinType}'/0'/0/{index}`.
+
+**Critical problem:** `MASTER_SEED` = `process.env.BITCOIN_MASTER_SEED || generateRandomSeed()`. If `BITCOIN_MASTER_SEED` is not in `.env`, a **new random seed is generated on every server restart**. This means:
+1. Different addresses are produced on every restart.
+2. No way to recover the HD wallet that was used.
+3. Any deposits sent to previously generated addresses become unrecoverable.
+
+For Ethereum (`lib/eth-address.ts`) and USDT, a similar pattern likely exists.
+
+**Network correctness:**
+- If `network === 'testnet'`, addresses start with `tb1...` — these are **Bitcoin testnet** addresses and are only valid on testnet. No real BTC can be sent here.
+- If `network === 'mainnet'`, addresses start with `bc1...` — these are real mainnet Bitcoin addresses.
+
+The deposit modal likely defaults to `testnet` (see `generatePaymentAddress(userId, 'testnet')` in `bitcoin-address.ts`). So currently **no real addresses are being generated**.
+
+**Fix:**
+
+#### [MODIFY] `.env` / `env.example`
+- Document `BITCOIN_MASTER_SEED` as a **required** production variable.
+- Add a script to generate a secure seed (`node -e "require('crypto').randomBytes(32).toString('hex')"`) and prompt the user to set it once.
+
+#### [MODIFY] [lib/bitcoin-wallet.ts](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/lib/bitcoin-wallet.ts)
+- If `BITCOIN_MASTER_SEED` is not set, throw an error in production instead of generating a random seed.
+- In development, allow the random seed but log a loud warning.
+
+#### [MODIFY] [lib/bitcoin-address.ts](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/lib/bitcoin-address.ts)
+- Change the default network from `testnet` to read from `process.env.BITCOIN_NETWORK` (`'mainnet'` | `'testnet'`).
+- Log the generated address and network clearly so the user can verify.
+
+---
+
+### 12 — Odds API Alignment with Documentation (Issue #12)
+
+**Detailed comparison of current implementation vs docs:**
+
+| Topic | Current | Docs says | Fix needed |
+|---|---|---|---|
+| `/events/{id}/odds` endpoint | Uses `/sports/${sport}/events/${eventId}` (missing `/odds`) | Must be `/v4/sports/{sport}/events/{eventId}/odds` | Fix URL in `lib/odds-api.ts` |
+| Region coverage | `us` only | For soccer: use `eu,uk` | Switch to `eu,uk,us` |
+| Markets for soccer | `h2h,spreads,totals` | `spreads`/`totals` = US sports only. Soccer only has `h2h` reliably | Use `h2h` for soccer; keep `spreads,totals` for NFL/NBA |
+| Quota tracking | Not tracked | Headers: `x-requests-remaining`, `x-requests-used`, `x-requests-last` | Log these headers on every response |
+| `commenceTimeFrom`/`To` | Not used | Available on `/odds` to filter time window | Add these for upcoming match filtering |
+| Scores endpoint | Implemented in `lib/odds-api.ts` but never called | Cost: 1 credit (no daysFrom) or 2 credits | Wire up to display live scores |
+| `upcoming` sport key | Not used | Special key returning next 8 cross-sport events (free) | Use for "quick preview" widget on homepage |
+| Event-level odds | `getEventOdds()` exists but path is wrong | Used for full market access per event | Fix path, use in match detail page |
+| `oddsFormat` | Set to `'american'` but converted to decimal via `americanToDecimal()` | Can request `decimal` directly | Switch to `oddsFormat: 'decimal'` to avoid double conversion |
+| Outright sports excluded | Correct (`!sport.has_outrights`) | Correct behavior | No change needed |
+| Empty response quota | 0 cost per docs | Matches behavior | No change needed |
+
+**Fix (in addition to changes above):**
+
+#### [MODIFY] [lib/odds-api.ts](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/lib/odds-api.ts)
+- Fix `getEventOdds()` URL.
+- Change default `oddsFormat` to `decimal`.
+- Add `commenceTimeFrom` and `commenceTimeTo` params to `getSportOdds()`.
+- Log `x-requests-remaining` header in `makeOddsApiRequest()`.
+
+#### [MODIFY] [lib/odds-api-transform.ts](file:///c:/Users/AYMANE%20MAALI/OneDrive/Bureau/houman-versel/lib/odds-api-transform.ts)
+- Remove `americanToDecimal()` conversion (switch to requesting decimal directly).
+- Fix the sport-specific match duration logic for status calculation.
+
+---
+
+## Additional Issues Found During Code Analysis
+
+---
+
+### A — `regions` parameter inconsistency
+
+The `regions` param is passed as a comma-delimited string (`'eu,uk,us'`) but the Odds API docs show it should be `regions=eu&regions=uk&regions=us` or `regions=eu,uk,us` — the comma-delimited form **is valid** per docs. No change needed.
+
+---
+
+### B — Profile Page is a Stub (Discovered, related to #7)
+
+`app/profile/page.tsx` is 9 lines that say "Coming soon". This means clicking "Profile" in the nav goes to a blank page. Full implementation needed (same as issue #7 fix).
+
+---
+
+### C — Header Currency Select is Completely Disconnected
+
+The `<select>` for currency in the header has no `onChange` handler, no state binding, and no connection to settings. Users who try to change currency via the header see nothing happen.
+
+---
+
+### D — `getMatchStatus()` Duration Assumptions are Wrong
+
+Games are marked `finished` after 3 hours. But NFL games average 3.5h, baseball 3h+, and NHL overtime can reach 4h. This causes live games to disappear from the live feed.
+
+---
+
+### E — Betting Markets Tab Navigation in Match Detail Always Uses Mock Data
+
+The `activeTab` variable in match detail controls which tab of `mockBettingMarkets` to display. Since all content is mocked Real Madrid data, every match shows the same markets regardless of the actual sport or event.
+
+---
+
+### F — No Error Boundary or Loading Fallback for Odds API Quota Exhaustion
+
+If the Odds API quota is exhausted, the matches route returns a 500 error. The frontend shows "Aucun match trouvé" with no indication that the API quota is the problem. Add quota-exhaustion detection and a user-friendly message.
+
+---
+
+## Verification Plan
+
+### Automated
+- Run `npm run build` to confirm no TypeScript errors after changes.
+- Run `npm test` to ensure existing tests pass.
+
+### Manual
+1. **Language**: Change language in Header → check page text updates (for keys that are translated). Change in Settings → confirm Header switcher also reflects new language.
+2. **Currency**: Change in Settings → confirm Header `<select>` reflects it. Confirm only EUR/USD available.
+3. **Modifier buttons**: Click each "Modifier" → inline form appears → save → success toast → form closes.
+4. **Match detail**: Open any real match → verify no "Real Madrid" text in markets section → real team names and odds shown.
+5. **Sports filtering**: Click "Football" filter → only soccer matches shown. Click "UN PROGRAMME" tab → upcoming matches visible.
+6. **Casino test**: Call `GET /api/casino/test` → read response to determine Slotegrator access status.
+7. **Theme**: Click ThemeToggle → entire app visually switches to light mode (backgrounds become white, text becomes dark).
+8. **Profile**: Navigate to `/profile` → full profile page renders with user data. Click pen icon → inline edit works.
+9. **Bitcoin address**: Generate a deposit address in the modal. Verify format: starts with `bc1` (mainnet) or `tb1` (testnet). Paste address into a Bitcoin address validator (e.g., https://www.blockchain.com/btc/address/[address]) to confirm it's a valid format.
+10. **Emojis**: Search for emoji characters in rendered UI → none found (replaced by Lucide icons).
+
+---
+
+## File Impact Summary
+
+| File | Action | Issues |
+|---|---|---|
+| `components/layout/LanguageSwitcher.tsx` | Already correct — no change | — |
+| `components/settings/LanguageModal.tsx` | Modify: wire setLocale, trim currencies | #1, #2, #10 |
+| `app/settings/page.tsx` | Modify: wire setLocale, activate Modifier buttons | #1, #3, #8 |
+| `app/profile/page.tsx` | Rewrite: full profile page | #3, #7 |
+| `components/layout/Header.tsx` | Modify: wire currency select, trim currencies | #2, #C |
+| `app/sports/matches/[id]/page.tsx` | Modify: remove mock data, use real event odds | #4, #E |
+| `app/api/sports/matches/route.ts` | Modify: regions, markets, time filters | #5, #9, #12 |
+| `lib/odds-api.ts` | Modify: fix event odds URL, add quota tracking, use decimal | #9, #12 |
+| `lib/odds-api-transform.ts` | Modify: fix status logic, remove american conversion | #5, #9, #12 |
+| `app/api/sports/sports-list/route.ts` | No change needed | — |
+| `app/api/casino/test/route.ts` | New: Slotegrator self-validate test | #6 |
+| `lib/casino-api.ts` | Modify: add testConnection() | #6 |
+| `lib/bitcoin-wallet.ts` | Modify: hard error if no MASTER_SEED in prod | #11 |
+| `lib/bitcoin-address.ts` | Modify: read network from env | #11 |
+| `app/globals.css` | Modify: add light/dark CSS variable sets | #8 |
+| `tailwind.config.ts` | Modify: ensure `darkMode: 'class'` | #8 |
+| `components/wallet/CryptoPaymentModal.tsx` | Modify: replace emojis | #10 |
+| `components/wallet/DepositStatus.tsx` | Modify: replace emojis | #10 |
+| `components/wallet/ConnectWalletButton.tsx` | Modify: replace emojis | #10 |
+| `components/layout/NotificationBell.tsx` | Modify: replace emojis | #10 |
+| `components/layout/AdBanner.tsx` | Modify: replace emojis | #10 |
+| `components/home/GameActivityTable.tsx` | Modify: replace emojis | #10 |
+| `components/home/CategoryGrid.tsx` | Modify: replace emojis | #10 |
+| `components/auth/ProfileModal.tsx` | Modify: replace emojis, fix pen icon | #7, #10 |
+
+---
+
+## Bonus System — Full Implementation Specification
+
+This section covers the design, rules engine, database schema, and implementation plan for all three promotional products.
+
+---
+
+### Bonus #1 — Welcome Bonus (Casino)
+
+**"100% up to $100 + 50 Free Spins"**
+
+#### Business Rules (Non-Negotiable)
+| Rule | Value |
+|---|---|
+| Match rate | 100% of first deposit |
+| Max bonus credit | $100 |
+| Free spins total | 50 (on one designated slot, 10/day × 5 days) |
+| Min qualifying deposit | $20 |
+| Wagering requirement | 35× on **bonus amount only** (not deposit + bonus) |
+| Eligible games | Slots only — 100% contribution |
+| Ineligible games | Blackjack, roulette, baccarat, poker, table games — 0% contribution |
+| Max bet while active | $5.00/spin — wins from higher bets are **voided** |
+| Bonus expiry | 7 days from credit |
+| Withdrawal cap before KYC | $500 on bonus-derived winnings |
+| Abuse prevention | ID + payment method + device/IP fingerprint (not email alone) |
+| Estimated cost | ≈ 3–6% of the bonus amount (based on 94–96% slot RTP) |
+
+#### Database Schema — New Tables
+
+```sql
+-- Stores each bonus instance awarded to a user
+CREATE TABLE user_bonuses (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID NOT NULL REFERENCES users(id),
+  bonus_type      VARCHAR(50) NOT NULL,   -- 'welcome', 'cashback', 'bet_and_get'
+  status          VARCHAR(20) NOT NULL DEFAULT 'active',
+                  -- 'active' | 'completed' | 'expired' | 'forfeited'
+  bonus_amount    DECIMAL(10,2) NOT NULL, -- credited bonus funds
+  wagering_requirement DECIMAL(10,2) NOT NULL, -- total amount that must be wagered
+  wagering_progress    DECIMAL(10,2) NOT NULL DEFAULT 0,
+  max_bet_limit   DECIMAL(10,2),          -- NULL = no limit; $5.00 for welcome
+  expires_at      TIMESTAMPTZ NOT NULL,
+  completed_at    TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tracks free spin batches (released 10/day for welcome bonus)
+CREATE TABLE free_spin_batches (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_bonus_id   UUID NOT NULL REFERENCES user_bonuses(id),
+  game_id         VARCHAR(100) NOT NULL,  -- Slotegrator game identifier
+  total_spins     INT NOT NULL,
+  spins_used      INT NOT NULL DEFAULT 0,
+  release_date    DATE NOT NULL,          -- date batch becomes available
+  expires_at      TIMESTAMPTZ NOT NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tracks contribution of each wager toward bonus wagering requirement
+CREATE TABLE bonus_wagering_contributions (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_bonus_id   UUID NOT NULL REFERENCES user_bonuses(id),
+  bet_id          UUID,                   -- reference to bets table if sports
+  game_session_id VARCHAR(200),           -- Slotegrator session reference if casino
+  game_type       VARCHAR(50) NOT NULL,   -- 'slot', 'table', 'sports'
+  bet_amount      DECIMAL(10,2) NOT NULL,
+  contribution_rate DECIMAL(5,4) NOT NULL, -- 1.0 for slots, 0.0 for table games
+  contribution_amount DECIMAL(10,2) NOT NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Abuse prevention fingerprints
+CREATE TABLE bonus_fingerprints (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID NOT NULL REFERENCES users(id),
+  bonus_type      VARCHAR(50) NOT NULL,
+  fingerprint_hash VARCHAR(64) NOT NULL,  -- SHA256 of ID+payment_method+device_id
+  ip_address      INET,
+  awarded_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(bonus_type, fingerprint_hash)    -- prevents double-claiming
+);
+```
+
+#### API Routes — New
+
+- **`POST /api/bonuses/welcome/claim`** — Called after a qualifying first deposit is detected. Verifies: (a) first deposit only, (b) amount ≥ $20, (c) fingerprint not already used. Credits `user_bonuses` + schedules 5 daily `free_spin_batches`.
+- **`GET /api/bonuses/active`** — Returns all active bonuses for the authenticated user (progress, remaining wagering, expiry).
+- **`POST /api/bonuses/forfeit`** — Allows user to forfeit an active bonus (resets balance to real-money only).
+- **`GET /api/bonuses/free-spins/available`** — Returns today's available free spin batch for a user.
+
+#### Wallet Integration
+
+> [!IMPORTANT]
+> The wallet must track **three distinct balance buckets** per user:
+> 1. `real_balance` — real deposited money, fully withdrawable
+> 2. `bonus_balance` — bonus funds, not withdrawable until wagering complete
+> 3. `locked_balance` — funds currently staked in active bets (already exists)
+
+#### [MODIFY] `lib/wallet.ts`
+- Add `bonus_balance` column to wallet logic.
+- Bets placed while a bonus is active should deduct from `bonus_balance` first, then `real_balance`.
+- Wins from bonus-funded bets go into `bonus_balance` until wagering requirement met.
+- When wagering requirement is fully met, `bonus_balance` converts to `real_balance`.
+
+#### [MODIFY] `app/api/wallet/` routes
+- All deposit/withdrawal endpoints must be aware of `bonus_balance` vs `real_balance`.
+- Withdrawal request: check if active bonus exists → if yes, enforce $500 cap before full KYC.
+
+#### Max Bet Enforcement
+
+#### [NEW] `lib/bonus-enforcement.ts`
+```typescript
+// Called before every casino spin/bet while a bonus is active
+export async function validateBetAgainstActiveBonus(
+  userId: string,
+  betAmount: number,
+  gameType: 'slot' | 'table' | 'sports'
+): Promise<{ allowed: boolean; reason?: string }> {
+  const activeBonus = await getActiveBonus(userId, 'welcome')
+  if (!activeBonus) return { allowed: true }
+  if (betAmount > activeBonus.max_bet_limit) {
+    return { allowed: false, reason: `Max bet while bonus active: $${activeBonus.max_bet_limit}` }
+  }
+  return { allowed: true }
+}
+```
+
+#### Wagering Contribution Tracking
+
+After every settled slot spin:
+1. Look up if user has an active bonus.
+2. Determine game type → contribution rate (1.0 for slots, 0.0 for tables).
+3. Insert into `bonus_wagering_contributions`.
+4. Update `user_bonuses.wagering_progress` += `contribution_amount`.
+5. If `wagering_progress >= wagering_requirement` → mark bonus `completed`, convert `bonus_balance` → `real_balance`.
+
+---
+
+### Bonus #2 — Weekly Cashback (Casino + Sportsbook)
+
+**"Up to 10% Weekly Cashback"**
+
+#### Business Rules
+| Rule | Value |
+|---|---|
+| Rate | 10% of net real-money losses |
+| Calculation base | Deposits − withdrawals − remaining real-money balance (for the week) |
+| Bonus-fund losses | **Excluded** — real money only |
+| Paid as | Bonus funds (not cash) |
+| Wagering requirement | 5× |
+| Weekly cap | $150 max payout |
+| Credit schedule | Auto-credited Monday 00:00 UTC |
+| Expiry | 72 hours after credit |
+| Estimated cost | ≈ 0.5–1.5% of weekly net losses |
+
+#### Calculation Logic
+
+```
+net_loss = SUM(real_money_bets_lost) - SUM(real_money_wins)
+           [real bets only; bonus-funded rounds excluded]
+cashback_amount = MIN(net_loss × 0.10, 150.00)
+cashback_amount = MAX(cashback_amount, 0.00)  // no cashback if profitable
+```
+
+#### Implementation
+
+#### [NEW] `lib/cashback.ts`
+- `calculateWeeklyCashback(userId, weekStart, weekEnd)` — queries `bets` and `casino_sessions` for real-money activity, returns cashback amount.
+- `creditWeeklyCashback(userId)` — inserts into `user_bonuses` with type `'cashback'`, 5× wagering, 72h expiry.
+
+#### [NEW] Cron Job / Scheduled Route `app/api/cron/weekly-cashback/route.ts`
+- Protected endpoint called by a cron trigger every Monday 00:00 UTC.
+- Iterates all eligible users (had real-money activity in the past 7 days).
+- Calls `calculateWeeklyCashback()` → if > $0, calls `creditWeeklyCashback()`.
+- Sends an in-app notification (calls existing `lib/notifications.ts`).
+
+#### [MODIFY] `app/api/bets/` routes
+- Tag each settled bet with `funded_by: 'real' | 'bonus'` so cashback calculation can exclude bonus-funded losses.
+
+---
+
+### Bonus #3 — Sportsbook "Bet & Get"
+
+**"Bet $25, Get $10 in Bonus Bets"**
+
+#### Business Rules
+| Rule | Value |
+|---|---|
+| Trigger | Settled single bet ≥ $25 at odds −200 or longer (decimal ≥ 1.50) |
+| Reward | $10 bonus bet credited if the qualifying bet **loses** |
+| Bonus bet stake | NOT returned on win (standard free-bet mechanic) |
+| Frequency | One-time per verified user at launch; weekly ($10/week cap) in future |
+| Anti-abuse odds floor | −200 or longer is mandatory — kills matched-betting/arbitrage |
+| Estimated cost | ≈ $4–5 average per redemption |
+
+#### Odds Floor Logic
+
+```
+// American odds: -200 or longer means odds >= -200 (e.g., -150, +100, +300 all qualify)
+// Decimal equivalent: -200 american = 1.50 decimal
+// A qualifying bet must have decimal odds >= 1.50
+function qualifiesForBetAndGet(americanOdds: number): boolean {
+  if (americanOdds > 0) return true        // all positive odds qualify (+100, +300, etc.)
+  return americanOdds >= -200              // -200 is the floor; -300 does NOT qualify
+}
+```
+
+#### Implementation
+
+#### [NEW] `lib/bet-and-get.ts`
+- `checkBetAndGetEligibility(userId, betId)` — after a bet settles, checks: (a) user hasn't claimed yet, (b) bet was single (not parlay), (c) stake ≥ $25, (d) odds ≥ −200 / decimal ≥ 1.50, (e) bet was a loss.
+- `awardBetAndGet(userId)` — credits $10 bonus bet into `user_bonuses` with type `'bet_and_get'`.
+
+#### [MODIFY] `app/api/bets/settle/route.ts` (or wherever bet settlement logic lives)
+- After settling a bet, call `checkBetAndGetEligibility()`.
+- If eligible, auto-award the $10 bonus bet.
+- Send notification via `lib/notifications.ts`.
+
+#### Bonus Bet Mechanics
+- The $10 bonus bet is a single-use token: the user places it on any sports market.
+- If the bet wins: **winnings only** are credited to real balance (the $10 stake is not returned).
+- If the bet loses: bonus is consumed, nothing credited.
+
+---
+
+### Non-Negotiable Cross-Bonus Rules
+
+> [!CAUTION]
+> These rules must be enforced at the infrastructure level — not just the UI.
+
+#### 1. KYC Gate on Bonus Withdrawals
+- Users can deposit and play with a bonus without KYC.
+- **Any withdrawal attempt that includes bonus-derived winnings** triggers KYC gate.
+- Max $500 withdrawable before full KYC is approved.
+- `lib/wallet.ts` withdrawal function must check KYC status via `users.kyc_status` column.
+
+#### 2. One Bonus Per Person
+- **Not** enforced by email address alone (too easy to bypass).
+- Enforced by fingerprint: SHA256 hash of `(id_document_number || payment_method_token || device_fingerprint)`.
+- Stored in `bonus_fingerprints` table.
+- On each bonus claim attempt: compute fingerprint, check for existing row with same `bonus_type`.
+
+#### 3. Multi-Account Detection
+- Flag accounts sharing: same IP block (/24), same payment method, same device fingerprint.
+- Store in `suspicious_account_links` table.
+- Any flagged account has bonus eligibility frozen pending manual review.
+
+#### 4. Matched-Betting / Arbitrage Detection
+- Sports: flag user if opposite sides of the same event are bet across linked accounts.
+- Casino: flag if net win rate significantly exceeds statistical expectation (>3σ over 1,000+ spins).
+- Flagged accounts: bonus winnings voided, account referred to compliance review.
+
+#### [NEW] `lib/fraud-detection.ts`
+- `detectMatchedBetting(userId, matchId, selection)` — checks linked accounts for opposite selections.
+- `detectAbnormalWinRate(userId)` — runs nightly, flags statistical outliers.
+- `checkLinkedAccounts(userId)` — returns list of accounts sharing fingerprint/IP/payment.
+
+---
+
+### Bonus System — UI Components Needed
+
+#### [NEW] `components/bonuses/ActiveBonusCard.tsx`
+- Displays active bonus: type, amount, wagering progress bar, expiry countdown.
+- Shown in profile page and wallet modal.
+
+#### [NEW] `components/bonuses/BonusProgressBar.tsx`
+- Animated progress bar: `wagering_progress / wagering_requirement × 100%`.
+- Color: red → yellow → green as progress increases.
+
+#### [NEW] `components/bonuses/WelcomeBonusModal.tsx`
+- Shown after first qualifying deposit.
+- Explains: bonus amount credited, free spin schedule, wagering rules, max bet limit.
+- CTA: "Start Playing" → navigates to the designated free-spin slot.
+
+#### [NEW] `components/bonuses/CashbackNotification.tsx`
+- Monday morning toast/modal: "You received $X.XX cashback this week!"
+- Shows wagering requirement and expiry time.
+
+#### [NEW] `app/bonuses/page.tsx`
+- Full bonuses hub page.
+- Lists: available bonuses (Welcome, Cashback, Bet & Get), T&Cs per bonus, claimed history.
+
+---
+
+### Bonus System — File Impact Addition
+
+| File | Action | Bonus |
+|---|---|---|
+| `lib/wallet.ts` | Add `bonus_balance` bucket, KYC withdrawal gate | All |
+| `lib/bonus-enforcement.ts` | New: max-bet validation, contribution tracking | #1 |
+| `lib/cashback.ts` | New: weekly cashback calculation + credit | #2 |
+| `lib/bet-and-get.ts` | New: Bet & Get eligibility + award | #3 |
+| `lib/fraud-detection.ts` | New: matched-betting, win-rate, linked-account checks | All |
+| `app/api/bonuses/welcome/claim/route.ts` | New: Welcome bonus claim endpoint | #1 |
+| `app/api/bonuses/active/route.ts` | New: Get active bonuses for user | All |
+| `app/api/bonuses/forfeit/route.ts` | New: Forfeit active bonus | All |
+| `app/api/bonuses/free-spins/available/route.ts` | New: Today's free spin batch | #1 |
+| `app/api/cron/weekly-cashback/route.ts` | New: Monday auto-credit cron | #2 |
+| `app/api/bets/settle/route.ts` | Modify: trigger Bet & Get check on settlement | #3 |
+| `components/bonuses/ActiveBonusCard.tsx` | New: bonus progress UI | All |
+| `components/bonuses/BonusProgressBar.tsx` | New: animated wagering bar | All |
+| `components/bonuses/WelcomeBonusModal.tsx` | New: post-deposit welcome flow | #1 |
+| `components/bonuses/CashbackNotification.tsx` | New: Monday cashback toast | #2 |
+| `app/bonuses/page.tsx` | New: Bonuses hub page | All |
+| SQL migrations | New tables: `user_bonuses`, `free_spin_batches`, `bonus_wagering_contributions`, `bonus_fingerprints`, `suspicious_account_links` | All |
+
+---
+
+## Admin Panel — Full Overhaul Specification
+
+This section details every fix and feature needed to make the admin panel **100% functional with real data** and zero mock/static content.
+
+---
+
+### Admin Panel — Global Issues (Apply to All Pages)
+
+#### Issue A — Language Switcher Missing in Admin
+The admin panel (`components/admin/AdminSidebar.tsx` and `components/admin/AdminHeader.tsx`) has **no language switcher**. The sidebar is hardcoded in French. The admin panel should reuse the same `I18nProvider` (already wrapping the whole app in `app/layout.tsx`) and expose a language toggle.
+
+#### [MODIFY] `components/admin/AdminHeader.tsx`
+- Add `<LanguageSwitcher />` component (already built for the main site — reuse it).
+- Add `<AdminThemeToggle />` (see below).
+- Show logged-in admin name pulled from `localStorage.getItem('admin_user')`.
+
+#### Issue B — Theme Toggle Missing in Admin
+The admin layout uses hardcoded `bg-gray-900` / `bg-gray-800` Tailwind classes everywhere. There is no theme toggle — it is always dark.
+
+#### [NEW] `components/admin/AdminThemeToggle.tsx`
+- Same logic as `components/settings/ThemeToggle.tsx` — reads/writes `localStorage('theme')` and toggles `.dark` on `document.documentElement`.
+- Place in `AdminHeader` top-right.
+- Add light-mode Tailwind variants to admin layout: `bg-white dark:bg-gray-900`, `text-gray-900 dark:text-white`, etc.
+
+#### [MODIFY] `app/(admin)/layout.tsx`
+- Replace hardcoded `bg-gray-900 text-white` class with `bg-white dark:bg-gray-900 text-gray-900 dark:text-white`.
+- Ensure `tailwind.config.ts` has `darkMode: 'class'` (shared with main site fix from issue #8).
+
+#### Issue C — No Auth Guard on Admin Pages
+The admin layout does **not** protect routes — any page accessed directly without a token just renders (the check is inside each `useEffect`). The layout itself should redirect to `/admin/login` immediately if no token exists.
+
+#### [MODIFY] `app/(admin)/layout.tsx`
+- Add a client-side auth check: if `localStorage.getItem('admin_session_token')` is null and the current path is not `/admin/login`, redirect immediately.
+
+---
+
+### Page 1 — Tableau de Bord (Dashboard)
+
+**Current State:** The dashboard already calls `/api/admin/stats` and uses real data from the API. However:
+- If the API returns empty arrays (no bets, no users yet), the charts render as blank with no "empty state" message.
+- The `pendingDeposits` and `pendingWithdrawals` counters are hardcoded to `0` in the financial page (`fetchFinancialData` sets them to 0 regardless of API response).
+- The "recent deposits" table shows `btc_amount` as a number column but may be `null` — causes `NaN` display.
+- No auto-refresh — data only loads once on mount.
+
+**Fix:**
+
+#### [MODIFY] `app/(admin)/admin/dashboard/page.tsx`
+- Fix `pendingDeposits` / `pendingWithdrawals`: read these from `result.data.financial.pendingDeposits` (verify the API returns them) instead of hardcoding `0`.
+- Add empty-state messages inside each chart section: "Aucune donnée pour cette période".
+- Add a **Refresh** button + auto-refresh every 30 seconds using `setInterval` with cleanup.
+- Fix `btc_amount` display: `(btc ?? 0).toFixed(6)`.
+- Add **"Nouveaux aujourd'hui"** metric using `stats.users.newToday`.
+- Add a **GGR (Gross Gaming Revenue)** card: `totalWagered - totalPaid` computed server-side.
+
+#### [MODIFY] `app/api/admin/stats/route.ts`
+- Verify `pendingDeposits` and `pendingWithdrawals` are returned correctly.
+- Add `newToday` count: users created in the last 24 hours.
+- Add `ggr`: sum of `amount` on won bets minus sum of `potential_win` on those bets (or use `wagered - returned`).
+
+---
+
+### Page 2 — Utilisateurs (Users)
+
+**Current State:** The users list loads from `/api/admin/users` and shows real users. The search and filter work. However:
+- **Clicking a user does nothing** — there is no drill-down detail page.
+- The `UserModal` component opens for editing but it's unclear if the `PUT /api/admin/users/:id` route exists and persists data.
+- No balance column — you can't see a user's wallet from this list.
+- No pagination — all users load at once (performance issue at scale).
+- The "Delete" action calls an API but has no confirmation of what data gets deleted (bets? wallet? deposits?).
+
+**Fix:**
+
+#### [NEW] `app/(admin)/admin/users/[id]/page.tsx` — User Detail Page
+A full drill-down page for a single user, accessible by clicking any row in the users table. Displays:
+
+| Section | Data shown |
+|---|---|
+| **Profile** | Avatar, username, email, phone, registration date, last login, IP |
+| **Wallet** | Real balance, bonus balance, locked balance, lifetime deposits, lifetime withdrawals |
+| **Bet History** | Paginated table: match, selection, odds, stake, status, payout, date |
+| **Casino Activity** | Game name, session duration, bet amount, win/loss, date |
+| **Deposit History** | Transaction ID, amount, currency, crypto address, status, date |
+| **Withdrawal History** | Amount, destination, status, processed date |
+| **Active Bonuses** | Bonus type, amount, wagering progress, expiry |
+| **Flags** | KYC status, bonus abuse flag, multi-account links |
+| **Admin Actions** | Ban/Unban, manual balance adjustment, force-KYC, clear bonuses |
+
+#### [MODIFY] `app/(admin)/admin/users/page.tsx`
+- Make each table row clickable → `router.push('/admin/users/' + user.id)`.
+- Add `balance` column (pull from wallets table via `/api/admin/users`).
+- Add pagination: `?page=1&limit=25` query params.
+- Add `newToday` badge at the top.
+
+#### [MODIFY/VERIFY] `app/api/admin/users/[id]/route.ts`
+- `GET`: return full user profile + wallet + bet summary counts + bonus status.
+- `PUT`: allow updating `username`, `email`, `is_active`, `is_admin`, `balance` (manual adjustment).
+- `DELETE`: cascade-aware — document and confirm what gets deleted.
+
+#### [NEW] `app/api/admin/users/[id]/activity/route.ts`
+- Returns paginated bets + casino sessions + deposits + withdrawals for one user.
+- Query params: `?tab=bets&page=1&limit=20`.
+
+---
+
+### Page 3 — Paris (Bets)
+
+**Current State:** Loads bets from `/api/admin/bets`. But:
+- The `Bet` interface only has: `id`, `user_id`, `amount`, `status`, `placed_at`, `odds`, `selection`. Missing: username/email, match name, potential win, actual payout, bet type.
+- No filter re-fetch — the `filter` state filters client-side only (all bets loaded at once).
+- No way to **manually settle** a bet (e.g., if the sports API failed to settle it automatically).
+- No search by user or match.
+- If the `bets` table is empty, the page shows a blank table with no "no bets yet" message.
+
+**Fix:**
+
+#### [MODIFY] `app/(admin)/admin/bets/page.tsx`
+- Extend the `Bet` interface: add `username`, `email`, `match_name`, `home_team`, `away_team`, `bet_type`, `potential_win`, `actual_payout`.
+- Add **search** by username or match name.
+- Add **filter re-fetch** (move filtering to server via query params).
+- Add a **"Régler manuellement"** (Manual Settle) button for `pending` bets: opens a modal with Win/Loss/Void options and writes the outcome.
+- Add empty state: "Aucun pari trouvé. Les paris apparaîtront ici une fois que les utilisateurs auront commencé à parier."
+- Add pagination.
+
+#### [MODIFY] `app/api/admin/bets/route.ts`
+- JOIN with `users` table to return `username` and `email`.
+- JOIN with `matches` (or use `match_id` + sport key) to return match details.
+- Add `potential_win` and `actual_payout` to response.
+- Support `?status=pending&search=&page=1&limit=25` params.
+
+#### [NEW] `app/api/admin/bets/[id]/settle/route.ts`
+- `POST`: body `{ outcome: 'won' | 'lost' | 'void' }` — manually settles a bet, credits/debits the wallet accordingly.
+
+---
+
+### Page 4 — Finances (Financial)
+
+**Current State:** Loads real data from `/api/admin/stats` and `/api/admin/transactions`. But:
+- `pendingDeposits: 0` is hardcoded.
+- The **Download CSV** button (`<Download />` icon in the header area) is a `<Download className... />` **icon with no onClick handler** — completely non-functional.
+- The `typeFilter` and `statusFilter` state changes re-fetch but there's no loading spinner during the refetch — just a blank flash.
+- Pending deposits have no **"Approve"** / **"Reject"** action buttons.
+- No distinction between crypto deposits and fiat deposits in the summary.
+- `tx_hash` is shown but not linked to a blockchain explorer.
+
+**Fix:**
+
+#### [MODIFY] `app/(admin)/admin/financial/page.tsx`
+- Fix the **Download CSV** button: wire it to call `exportTransactionsReport()` from `lib/export-utils.ts` with the currently filtered data.
+- Add a **loading overlay** during filter re-fetch.
+- For `status === 'pending'` crypto deposits: add **"Confirmer"** button that calls `PATCH /api/admin/transactions/:id` with `{ status: 'completed' }`.
+- For `status === 'pending'` withdrawals: add **"Approuver"** and **"Rejeter"** buttons.
+- Make `tx_hash` a clickable link: `https://www.blockchain.com/btc/tx/{tx_hash}` for BTC, `https://etherscan.io/tx/{tx_hash}` for ETH.
+- Add a **"GGR"** (Gross Gaming Revenue) row to the summary: total wagered minus total paid out.
+- Add a **"House Edge"** % = GGR / total wagered × 100.
+- Remove irrelevant fields: `btc_amount` column when `network` is null (fiat transaction).
+
+#### [NEW/MODIFY] `app/api/admin/transactions/[id]/route.ts`
+- `PATCH`: update transaction status. For `completed`: trigger balance credit. For `rejected`: log the rejection reason.
+
+---
+
+### Page 5 — Rapports (Reports)
+
+**Current State:** Has 4 report types (betting, casino, transactions, users) that call real API endpoints and export via `lib/export-utils.ts`. But:
+- Uses `alert()` for success/error feedback (should be `toast`).
+- No **preview** of what the report contains before downloading — user has no idea if there's data.
+- No **scheduled reports** — reports are only on-demand.
+- The casino report may return empty if Slotegrator sessions aren't being logged.
+- Missing: **Bonus activity report**, **Fraud/suspicious accounts report**.
+
+**Fix:**
+
+#### [MODIFY] `app/(admin)/admin/reports/page.tsx`
+- Replace `alert()` calls with `toast.success()` / `toast.error()` (react-hot-toast already installed).
+- Add a **preview count** before download: after clicking "Générer", first show "X records found for this period. Download?" before triggering the export.
+- Add **two new report types**:
+  - **Rapport de bonus**: exports `user_bonuses` data — who claimed what, wagering progress, completions, forfeitures.
+  - **Rapport de fraude**: exports `suspicious_account_links` and accounts with flagged abuse patterns.
+- Add **"Rapport vide"** state: if API returns 0 records, show a clear message instead of downloading an empty CSV.
+- Add **report history** section: a table of last 10 generated reports (type, date, row count, generated by).
+
+#### [MODIFY] `app/api/admin/reports/[type]/route.ts` (verify existing)
+- Ensure all 4 existing types return meaningful data.
+- Add `bonuses` and `fraud` report types.
+
+---
+
+### Page 6 — Paramètres Admin (Settings)
+
+**Current State:** All settings are **local state only** — `handleSave` does `await new Promise(resolve => setTimeout(resolve, 1000))` (a fake delay) and then shows a success toast. **Nothing is actually saved.** On page reload, all values reset to their defaults.
+
+**Fix:**
+
+#### [NEW] `app/api/admin/settings/route.ts`
+- `GET`: return current platform settings from DB (new `platform_settings` table, key-value store).
+- `PUT`: update one or more settings atomically.
+
+#### [NEW] SQL migration — `platform_settings` table
+```sql
+CREATE TABLE platform_settings (
+  key   VARCHAR(100) PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by UUID REFERENCES users(id)
+);
+
+-- Seed defaults
+INSERT INTO platform_settings (key, value) VALUES
+  ('site_name', 'Shartbandee'),
+  ('site_url', 'https://shartbandee.com'),
+  ('maintenance_mode', 'false'),
+  ('registration_enabled', 'true'),
+  ('min_deposit', '20'),
+  ('max_deposit', '100000'),
+  ('min_withdrawal', '20'),
+  ('max_withdrawal', '50000'),
+  ('default_currency', 'EUR'),
+  ('default_language', 'fr'),
+  ('timezone', 'Africa/Casablanca');
+```
+
+#### [MODIFY] `app/(admin)/admin/settings/page.tsx`
+- On mount: `GET /api/admin/settings` → populate form fields with real values.
+- On save: `PUT /api/admin/settings` with changed fields only → show success/error toast.
+- `maintenanceMode` toggle: when enabled, show a warning that **all non-admin users will be blocked**. Require confirmation modal before saving.
+- `registrationEnabled` toggle: functional — stored in DB and checked on the registration API route.
+- All other fields: save to `platform_settings` table.
+- Add a **"Réinitialiser"** (Reset to defaults) button that resets all settings to seed values.
+
+#### [MODIFY] `app/api/register/route.ts` (or equivalent)
+- Check `platform_settings` for `registration_enabled = 'true'` before allowing new registrations.
+
+#### [MODIFY] `middleware.ts`
+- Check `platform_settings` for `maintenance_mode = 'true'` and return a 503 maintenance page for all non-admin routes.
+
+---
+
+### Admin Panel — Missing Functionality Audit
+
+The following buttons/actions exist in the admin UI but are currently broken or missing API backing:
+
+| Location | Element | Problem | Fix |
+|---|---|---|---|
+| `financial/page.tsx` | Download icon button | No onClick handler | Wire to `exportTransactionsReport()` |
+| `financial/page.tsx` | Pending deposit rows | No Approve/Reject buttons | Add action buttons → `PATCH /api/admin/transactions/:id` |
+| `bets/page.tsx` | All rows | No manual settle action | Add "Régler" button → new settle API |
+| `users/page.tsx` | User rows | No drill-down on click | Add `router.push('/admin/users/'+id)` |
+| `settings/page.tsx` | Save button | Fake setTimeout | Real `PUT /api/admin/settings` |
+| `reports/page.tsx` | All report buttons | `alert()` for feedback | Replace with `toast()` |
+| `AdminHeader.tsx` | — | No language switcher | Add `<LanguageSwitcher />` |
+| `AdminHeader.tsx` | — | No theme toggle | Add `<AdminThemeToggle />` |
+| `dashboard/page.tsx` | — | No refresh button | Add auto-refresh every 30s |
+| `dashboard/page.tsx` | Charts | Blank if no data | Add empty-state messages |
+
+---
+
+### Admin Panel — File Impact Summary
+
+| File | Action | Section |
+|---|---|---|
+| `app/(admin)/layout.tsx` | Modify: auth guard, dark/light class support | Global |
+| `components/admin/AdminHeader.tsx` | Modify: add LanguageSwitcher + ThemeToggle | Global |
+| `components/admin/AdminThemeToggle.tsx` | New: theme toggle for admin | Global |
+| `app/(admin)/admin/dashboard/page.tsx` | Modify: fix pending counts, empty states, auto-refresh | Dashboard |
+| `app/api/admin/stats/route.ts` | Modify: add newToday, pendingDeposits, GGR | Dashboard |
+| `app/(admin)/admin/users/page.tsx` | Modify: add balance col, pagination, row click | Users |
+| `app/(admin)/admin/users/[id]/page.tsx` | New: full user detail page | Users |
+| `app/api/admin/users/route.ts` | Modify: add balance JOIN, pagination | Users |
+| `app/api/admin/users/[id]/route.ts` | Modify/verify: full profile + wallet response | Users |
+| `app/api/admin/users/[id]/activity/route.ts` | New: paginated user activity | Users |
+| `app/(admin)/admin/bets/page.tsx` | Modify: extend fields, search, manual settle | Bets |
+| `app/api/admin/bets/route.ts` | Modify: add JOINs, pagination, search | Bets |
+| `app/api/admin/bets/[id]/settle/route.ts` | New: manual bet settlement | Bets |
+| `app/(admin)/admin/financial/page.tsx` | Modify: fix download, add approve/reject, tx links, GGR | Financial |
+| `app/api/admin/transactions/[id]/route.ts` | New/Modify: PATCH status handler | Financial |
+| `app/(admin)/admin/reports/page.tsx` | Modify: replace alerts, add preview counts, new report types | Reports |
+| `app/api/admin/reports/[type]/route.ts` | Modify: add bonuses + fraud report types | Reports |
+| `app/(admin)/admin/settings/page.tsx` | Modify: real GET/PUT, maintenance confirmation | Settings |
+| `app/api/admin/settings/route.ts` | New: GET + PUT platform settings | Settings |
+| `app/api/register/route.ts` | Modify: check registration_enabled setting | Settings |
+| `middleware.ts` | Modify: check maintenance_mode setting | Settings |
+| SQL | New: `platform_settings` table with seed data | Settings |
+

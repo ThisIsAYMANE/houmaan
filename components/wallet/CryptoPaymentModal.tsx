@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import CopyAddress from './CopyAddress'
 import ConnectWalletButton from './ConnectWalletButton'
 import DepositStatus from './DepositStatus'
+import { useAuthStore } from '@/stores/auth-store'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type TabType = 'deposit' | 'withdraw'
@@ -34,9 +35,9 @@ const TOKENS = [
 ]
 
 const USDT_NETWORKS = [
-  { id: 'bsc' as USDTNetwork, label: 'BNB Smart Chain', short: 'BEP-20', icon: '🟡', confirmations: 15 },
-  { id: 'ethereum' as USDTNetwork, label: 'Ethereum', short: 'ERC-20', icon: '🔵', confirmations: 12 },
-  { id: 'polygon' as USDTNetwork, label: 'Polygon', short: 'MATIC', icon: '🟣', confirmations: 20 },
+  { id: 'bsc' as USDTNetwork, label: 'BNB Smart Chain', short: 'BEP-20', icon: 'bsc', confirmations: 15 },
+  { id: 'ethereum' as USDTNetwork, label: 'Ethereum', short: 'ERC-20', icon: 'eth', confirmations: 12 },
+  { id: 'polygon' as USDTNetwork, label: 'Polygon', short: 'MATIC', icon: 'matic', confirmations: 20 },
 ]
 
 // Copy icon SVG
@@ -122,6 +123,7 @@ const primaryBtnStyle: React.CSSProperties = {
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function CryptoPaymentModal({ isOpen, onClose }: CryptoPaymentModalProps) {
+  const { sessionToken } = useAuthStore()
   const [tab, setTab] = useState<TabType>('deposit')
 
   // Deposit state
@@ -173,9 +175,8 @@ export default function CryptoPaymentModal({ isOpen, onClose }: CryptoPaymentMod
 
   const fetchBalance = async () => {
     try {
-      const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
       const res = await fetch('/api/wallet/balance', {
-        headers: t ? { Authorization: `Bearer ${t}` } : {},
+        headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {},
       })
       if (res.ok) {
         const data = await res.json()
@@ -184,8 +185,7 @@ export default function CryptoPaymentModal({ isOpen, onClose }: CryptoPaymentMod
     } catch { /* non-fatal */ }
   }
 
-  const getAuthToken = () =>
-    typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  const getAuthToken = () => sessionToken
 
   const handleGenerateDeposit = async () => {
     const num = parseFloat(amount)
@@ -331,7 +331,7 @@ export default function CryptoPaymentModal({ isOpen, onClose }: CryptoPaymentMod
                     color: tab === t ? '#c084fc' : '#6b7280',
                   }}
                 >
-                  {t === 'deposit' ? '📥 Deposit' : '📤 Withdraw'}
+                  {t === 'deposit' ? 'Deposit' : 'Withdraw'}
                 </button>
               ))}
             </div>
@@ -550,7 +550,7 @@ export default function CryptoPaymentModal({ isOpen, onClose }: CryptoPaymentMod
                         Generating address…
                       </>
                     ) : (
-                      <>🔐 Generate {token.toUpperCase()} Address</>
+                      <>Generate {token.toUpperCase()} Address</>
                     )}
                   </button>
 
@@ -946,7 +946,7 @@ export default function CryptoPaymentModal({ isOpen, onClose }: CryptoPaymentMod
                         Processing…
                       </>
                     ) : (
-                      <>💸 Confirm Withdrawal</>
+                      <>Confirm Withdrawal</>
                     )}
                   </button>
                 </>

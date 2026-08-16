@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Star, ChevronUp, ChevronDown, Zap, Megaphone, Pin } from 'lucide-react'
+import { ArrowLeft, Loader2, Star, ChevronUp, ChevronDown, Zap, Pin, AlertCircle } from 'lucide-react'
 import BottomActionBar from '@/components/sports/BottomActionBar'
 import BetSlip from '@/components/sports/BetSlip'
-// Removed mock data import - now using real Odds API data
 
 interface Match {
   id: string
@@ -20,8 +19,14 @@ interface Match {
   match_minute?: number
   is_live: boolean
   sport_name?: string
+  sport_key?: string
   league_name?: string
   league_country?: string
+  odds?: {
+    h2h?: { home: number; draw?: number; away: number }
+    spreads?: Array<{ team: string; point: number; price: number }>
+    totals?: Array<{ over: number; under: number; point: number }>
+  }
 }
 
 interface BettingMarket {
@@ -36,153 +41,69 @@ interface BettingMarket {
   }[]
 }
 
-interface ExpertTip {
-  id: string
-  title: string
-  bet: string
-  option: string
-  odds: number
-}
-
-const mockBettingMarkets: Record<string, BettingMarket[]> = {
-  principal: [
-    {
-      id: '1x2',
-      name: '1x2',
-      type: 'match-result',
-      options: [
-        { label: 'Real Madrid', odds: 1.21 },
-        { label: 'Match nul', odds: 7.0 },
-        { label: 'FC Séville', odds: 11.0 }
-      ]
-    },
-    {
-      id: 'double-chance',
-      name: 'Double chance',
-      type: 'double-chance',
-      options: [
-        { label: 'Real Madrid ou Match nul', odds: 1.01 },
-        { label: 'Real Madrid ou FC Séville', odds: 1.07 },
-        { label: 'Match nul ou FC Séville', odds: 4.2 }
-      ]
-    },
-    {
-      id: 'total',
-      name: 'Total',
-      type: 'total',
-      options: [
-        { label: 'Plus de 1', odds: 1.02 },
-        { label: 'Moins de 1', odds: 12.0 },
-        { label: 'Plus de 1.5', odds: 1.11 },
-        { label: 'Moins de 1.5', odds: 6.0 },
-        { label: 'Plus de 2', odds: 1.16 },
-        { label: 'Moins de 2', odds: 5.0 },
-        { label: 'Plus de 2.5', odds: 1.38 },
-        { label: 'Moins de 2.5', odds: 2.94 },
-        { label: 'Plus de 3', odds: 1.58 },
-        { label: 'Moins de 3', odds: 2.32 },
-        { label: 'Plus de 3.5', odds: 1.94 },
-        { label: 'Moins de 3.5', odds: 1.82 },
-        { label: 'Plus de 4', odds: 2.62 },
-        { label: 'Moins de 4', odds: 1.47 },
-        { label: 'Plus de 4.5', odds: 3.1 },
-        { label: 'Moins de 4.5', odds: 1.35 },
-        { label: 'Plus de 5', odds: 4.8 },
-        { label: 'Moins de 5', odds: 1.17 },
-        { label: 'Plus de 5.5', odds: 5.2 },
-        { label: 'Moins de 5.5', odds: 1.15 },
-        { label: 'Plus de 6.5', odds: 8.6 },
-        { label: 'Moins de 6.5', odds: 1.07 }
-      ]
-    }
-  ],
-  buts: [
-    {
-      id: 'premiere-but',
-      name: 'Première but',
-      type: 'first-goal',
-      isPinned: true,
-      options: [
-        { label: 'Real Madrid', odds: 1.24 },
-        { label: 'aucun', odds: 21.0 },
-        { label: 'FC Séville', odds: 4.1 }
-      ]
-    }
-  ],
-  handicaps: [
-    {
-      id: 'handicap',
-      name: 'Handicap',
-      type: 'handicap',
-      isPinned: true,
-      options: [
-        { label: '(-4.5) Real Madrid', odds: 8.0 },
-        { label: '(4.5) FC Séville', odds: 1.07 },
-        { label: '(-4) Real Madrid', odds: 7.0 },
-        { label: '(4) FC Séville', odds: 1.08 },
-        { label: '(-3.5) Real Madrid', odds: 4.2 },
-        { label: '(3.5) FC Séville', odds: 1.21 },
-        { label: '(-3) Real Madrid', odds: 3.6 },
-        { label: '(3) FC Séville', odds: 1.27 },
-        { label: '(-2.5) Real Madrid', odds: 2.42 },
-        { label: '(2.5) FC Séville', odds: 1.54 },
-        { label: '(-2) Real Madrid', odds: 1.91 },
-        { label: '(2) FC Séville', odds: 1.85 },
-        { label: '(-1.5) Real Madrid', odds: 1.58 },
-        { label: '(1.5) FC Séville', odds: 2.32 },
-        { label: '(-1) Real Madrid', odds: 1.28 },
-        { label: '(1) FC Séville', odds: 3.55 },
-        { label: '(-0.5) Real Madrid', odds: 1.19 },
-        { label: '(0.5) FC Séville', odds: 4.5 },
-        { label: '(0) Real Madrid', odds: 1.06 },
-        { label: '(0) FC Séville', odds: 1.06 }
-      ]
-    }
-  ]
-}
-
-const mockExpertTips: ExpertTip[] = [
-  {
-    id: '1',
-    title: 'Lors des 5 dernières rencontres de LaLiga, le Real Madrid a gardé sa cage inviolée lors de 3 matchs contre Séville.',
-    bet: '1x2 & Les deux équipes qui marquent',
-    option: 'Real Madrid & non',
-    odds: 2.05
-  },
-  {
-    id: '2',
-    title: 'Lors des 10 derniers affrontements en LaLiga, 6 matchs sur 10 ont eu plus de 2,5 buts, mais les deux équipes ont marqué seulement dans 6 sur 10.',
-    bet: 'Total & Les deux équipes qui marquent',
-    option: 'plus de 2.5 & non',
-    odds: 3.05
-  },
-  {
-    id: '3',
-    title: 'Le Real Madrid a marqué au moins 2 buts lors de 7 de ses 10 derniers matchs de LaLiga contre Séville, avec une moyenne de 2,9 buts par match.',
-    bet: '1x2 & total',
-    option: 'Real Madrid & plus de 2.5',
-    odds: 1.5
-  },
-  {
-    id: '4',
-    title: 'Lors des 3 derniers matchs à domicile contre Séville en LaLiga, la moyenne de buts était élevée, signe d\'une grande intensité.',
-    bet: 'Total cartons',
-    option: 'Plus de 4.5',
-    odds: 1.85
-  }
-]
-
 const tabs = [
-  { id: 'principal', label: 'Principal', count: 30 },
-  { id: 'bet-builder', label: 'Créateur de pari', count: 34 },
-  { id: 'half-time', label: 'Mi-temps', count: 33 },
-  { id: 'buts', label: 'Buts', count: 27 },
-  { id: 'stats', label: 'Statistique', count: 37 },
-  { id: 'player-props', label: 'Propriétés de joueur', count: 23 },
-  { id: 'extras', label: 'Extras', count: 32 },
-  { id: 'handicaps', label: 'Handicaps', count: 10 },
-  { id: 'rapide', label: 'Rapide', count: 17, icon: Zap }
+  { id: 'principal', label: 'Principal' },
+  { id: 'spreads', label: 'Handicaps' },
+  { id: 'totals', label: 'Totaux' },
 ]
+
+/**
+ * Transform real odds data from the match API into BettingMarket format
+ */
+function buildMarketsFromMatch(match: Match): Record<string, BettingMarket[]> {
+  const markets: Record<string, BettingMarket[]> = {
+    principal: [],
+    spreads: [],
+    totals: [],
+  }
+
+  if (match.odds?.h2h) {
+    const { home, draw, away } = match.odds.h2h
+    const h2hOptions = [
+      { label: match.home_team, odds: home },
+      ...(draw !== undefined ? [{ label: 'Match nul', odds: draw }] : []),
+      { label: match.away_team, odds: away },
+    ]
+    markets.principal.push({
+      id: '1x2',
+      name: draw !== undefined ? '1X2' : 'Résultat du match',
+      type: 'match-result',
+      options: h2hOptions,
+    })
+  }
+
+  if (match.odds?.spreads && match.odds.spreads.length > 0) {
+    const spreadOptions = match.odds.spreads.flatMap(s => [
+      { label: `${s.team} (${s.point > 0 ? '+' : ''}${s.point})`, odds: s.price },
+    ])
+    if (spreadOptions.length > 0) {
+      markets.spreads.push({
+        id: 'spreads',
+        name: 'Handicap',
+        type: 'handicap',
+        isPinned: true,
+        options: spreadOptions,
+      })
+    }
+  }
+
+  if (match.odds?.totals && match.odds.totals.length > 0) {
+    const totalOptions = match.odds.totals.flatMap(t => [
+      { label: `Plus de ${t.point}`, odds: t.over },
+      { label: `Moins de ${t.point}`, odds: t.under },
+    ])
+    if (totalOptions.length > 0) {
+      markets.totals.push({
+        id: 'totals',
+        name: 'Total buts',
+        type: 'total',
+        options: totalOptions,
+      })
+    }
+  }
+
+  return markets
+}
 
 export default function MatchDetailPage() {
   const params = useParams()
@@ -190,13 +111,15 @@ export default function MatchDetailPage() {
   const matchId = params.id as string
 
   const [match, setMatch] = useState<Match | null>(null)
+  const [bettingMarkets, setBettingMarkets] = useState<Record<string, BettingMarket[]>>({})
   const [activeTab, setActiveTab] = useState('principal')
-  const [expandedMarkets, setExpandedMarkets] = useState<Set<string>>(new Set(['double-chance', 'total']))
+  const [expandedMarkets, setExpandedMarkets] = useState<Set<string>>(new Set(['1x2', 'totals']))
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [betSlipOpen, setBetSlipOpen] = useState(false)
   const [bets, setBets] = useState<any[]>([])
   const [flashBetEnabled, setFlashBetEnabled] = useState(false)
+  const [oddsLoading, setOddsLoading] = useState(false)
 
   useEffect(() => {
     if (matchId) {
@@ -208,33 +131,59 @@ export default function MatchDetailPage() {
     try {
       setLoading(true)
       setError(null)
-      
-      // Fetch match from API
+
+      // Fetch match basic info
       const response = await fetch(`/api/sports/matches/${matchId}`)
-      
+
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Match not found')
-        }
-        throw new Error('Failed to load match')
+        if (response.status === 404) throw new Error('Match introuvable')
+        throw new Error('Erreur lors du chargement du match')
       }
-      
+
       const data = await response.json()
       if (data.match) {
-        setMatch(data.match)
+        const matchData = data.match
+        setMatch(matchData)
+
+        // Build markets from the match's embedded odds
+        const markets = buildMarketsFromMatch(matchData)
+        setBettingMarkets(markets)
+
+        // If no detailed odds or we need more markets, fetch from odds endpoint
+        const hasOdds = Object.values(markets).some(arr => arr.length > 0)
+        if (!hasOdds && matchData.sport_key) {
+          fetchDetailedOdds(matchData.sport_key)
+        }
       } else {
-        throw new Error('Match data not available')
+        throw new Error('Données du match non disponibles')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load match')
+      setError(err instanceof Error ? err.message : 'Erreur de chargement')
     } finally {
       setLoading(false)
     }
   }
 
+  const fetchDetailedOdds = async (sportKey: string) => {
+    setOddsLoading(true)
+    try {
+      const response = await fetch(`/api/sports/odds?matchId=${matchId}&sportKey=${sportKey}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.match) {
+          const markets = buildMarketsFromMatch(data.match)
+          setBettingMarkets(markets)
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch detailed odds:', err)
+    } finally {
+      setOddsLoading(false)
+    }
+  }
+
   const handleOddsClick = (selection: string, odds: number) => {
     if (!match) return
-
     const newBet = {
       id: `${matchId}-${selection}-${Date.now()}`,
       matchId,
@@ -245,38 +194,23 @@ export default function MatchDetailPage() {
       odds,
       amount: 5,
       isLive: match.is_live,
-      change: Math.random() > 0.5 ? 'up' as const : undefined
     }
-
     setBets(prev => [...prev, newBet])
     setBetSlipOpen(true)
   }
 
-  const handleRemoveBet = (betId: string) => {
-    setBets(prev => prev.filter(b => b.id !== betId))
-  }
-
-  const handleClearAll = () => {
-    setBets([])
-  }
-
-  const handlePlaceBet = (totalStake: number) => {
-    console.log('Placing bet:', { bets, totalStake })
-    setBets([])
-    setBetSlipOpen(false)
-  }
+  const handleRemoveBet = (betId: string) => setBets(prev => prev.filter(b => b.id !== betId))
+  const handleClearAll = () => setBets([])
+  const handlePlaceBet = () => { setBets([]); setBetSlipOpen(false) }
 
   const toggleMarket = (marketId: string) => {
     const newExpanded = new Set(expandedMarkets)
-    if (newExpanded.has(marketId)) {
-      newExpanded.delete(marketId)
-    } else {
-      newExpanded.add(marketId)
-    }
+    if (newExpanded.has(marketId)) newExpanded.delete(marketId)
+    else newExpanded.add(marketId)
     setExpandedMarkets(newExpanded)
   }
 
-  const currentMarkets = mockBettingMarkets[activeTab] || []
+  const currentMarkets = bettingMarkets[activeTab] || []
 
   if (loading) {
     return (
@@ -290,7 +224,8 @@ export default function MatchDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-500 mb-4">{error || 'Match not found'}</p>
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+          <p className="text-red-400 mb-4">{error || 'Match introuvable'}</p>
           <button
             onClick={() => router.back()}
             className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
@@ -304,107 +239,72 @@ export default function MatchDetailPage() {
 
   return (
     <div className="min-h-screen pb-24">
-      {/* Match Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-text-secondary text-sm">
-            {match.league_country} &gt; {match.league_name}
-          </span>
-        </div>
-
-        <div className="bg-bg-secondary rounded-lg border border-border-primary p-6">
-          <div className="flex items-center justify-between mb-6">
-            {/* Home Team */}
-            <div className="flex flex-col items-center gap-3 flex-1">
-              {match.home_team_logo ? (
-                <img
-                  src={match.home_team_logo}
-                  alt={match.home_team}
-                  className="w-20 h-20 object-contain"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-bg-tertiary flex items-center justify-center">
-                  <span className="text-2xl text-text-secondary">
-                    {match.home_team.charAt(0)}
-                  </span>
-                </div>
-              )}
-              <span className="text-xl font-bold text-text-primary text-center">
-                {match.home_team}
-              </span>
-            </div>
-
-            {/* Match Time/Score */}
-            <div className="flex flex-col items-center gap-2 px-6">
-              {match.is_live ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-sm text-text-secondary">
-                      {match.match_minute}' {match.match_minute && match.match_minute > 45 ? '2ème mi-temps' : '1ère mi-temps'}
-                    </span>
-                  </div>
-                  <div className="text-3xl font-bold text-text-primary">
-                    {match.home_score} - {match.away_score}
-                  </div>
-                </>
-              ) : (
-                <span className="text-text-secondary">
-                  {match.match_time || 'Aujourd\'hui, 21:00'}
-                </span>
-              )}
-            </div>
-
-            {/* Away Team */}
-            <div className="flex flex-col items-center gap-3 flex-1">
-              {match.away_team_logo ? (
-                <img
-                  src={match.away_team_logo}
-                  alt={match.away_team}
-                  className="w-20 h-20 object-contain"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-bg-tertiary flex items-center justify-center">
-                  <span className="text-2xl text-text-secondary">
-                    {match.away_team.charAt(0)}
-                  </span>
-                </div>
-              )}
-              <span className="text-xl font-bold text-text-primary text-center">
-                {match.away_team}
-              </span>
-            </div>
-          </div>
-        </div>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 mb-4">
+        <button onClick={() => router.back()} className="p-1 hover:bg-bg-tertiary rounded">
+          <ArrowLeft className="w-4 h-4 text-text-secondary" />
+        </button>
+        <span className="text-text-secondary text-sm">
+          {match.sport_name} {match.league_name && `> ${match.league_name}`}
+        </span>
       </div>
 
-      {/* Expert Tips */}
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-text-primary mb-4">Conseils d'experts</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {mockExpertTips.map((tip) => (
-            <div
-              key={tip.id}
-              className="bg-bg-secondary rounded-lg border border-border-primary p-4"
-            >
-              <div className="flex items-start gap-3 mb-3">
-                <Megaphone className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-text-secondary flex-1">{tip.title}</p>
-              </div>
-              <div className="flex items-center justify-between pt-3 border-t border-border-primary">
-                <div>
-                  <p className="text-xs text-text-secondary mb-1">{tip.bet}</p>
-                  <p className="text-sm font-semibold text-text-primary">{tip.option}</p>
-                </div>
-                <button
-                  onClick={() => handleOddsClick(tip.option, tip.odds)}
-                  className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-colors"
-                >
-                  {tip.odds.toFixed(2)}
-                </button>
-              </div>
+      {/* Match Header */}
+      <div className="bg-bg-secondary rounded-lg border border-border-primary p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          {/* Home Team */}
+          <div className="flex flex-col items-center gap-3 flex-1">
+            <div className="w-20 h-20 rounded-full bg-bg-tertiary flex items-center justify-center border border-border-primary">
+              {match.home_team_logo ? (
+                <img src={match.home_team_logo} alt={match.home_team} className="w-16 h-16 object-contain" />
+              ) : (
+                <span className="text-2xl font-bold text-text-secondary">{match.home_team.charAt(0)}</span>
+              )}
             </div>
-          ))}
+            <span className="text-lg font-bold text-text-primary text-center leading-tight">{match.home_team}</span>
+          </div>
+
+          {/* Score / Time */}
+          <div className="flex flex-col items-center gap-2 px-4">
+            {match.is_live ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <span className="text-sm text-red-400 font-medium">EN DIRECT</span>
+                </div>
+                <div className="text-3xl font-bold text-text-primary">
+                  {match.home_score ?? 0} - {match.away_score ?? 0}
+                </div>
+                {match.match_minute && (
+                  <span className="text-xs text-text-secondary">{match.match_minute}&apos;</span>
+                )}
+              </>
+            ) : (
+              <>
+                <span className="text-text-secondary text-sm">
+                  {match.match_time
+                    ? new Date(match.match_time).toLocaleString('fr-FR', {
+                        weekday: 'short', month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                      })
+                    : 'À venir'}
+                </span>
+                <div className="text-2xl font-bold text-text-secondary">VS</div>
+              </>
+            )}
+          </div>
+
+          {/* Away Team */}
+          <div className="flex flex-col items-center gap-3 flex-1">
+            <div className="w-20 h-20 rounded-full bg-bg-tertiary flex items-center justify-center border border-border-primary">
+              {match.away_team_logo ? (
+                <img src={match.away_team_logo} alt={match.away_team} className="w-16 h-16 object-contain" />
+              ) : (
+                <span className="text-2xl font-bold text-text-secondary">{match.away_team.charAt(0)}</span>
+              )}
+            </div>
+            <span className="text-lg font-bold text-text-primary text-center leading-tight">{match.away_team}</span>
+          </div>
         </div>
       </div>
 
@@ -415,39 +315,46 @@ export default function MatchDetailPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 font-semibold whitespace-nowrap transition-colors flex-shrink-0 flex items-center gap-2 relative ${
+              className={`px-4 py-2 font-semibold whitespace-nowrap transition-colors flex-shrink-0 relative ${
                 activeTab === tab.id
                   ? 'text-text-primary'
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >
-              {tab.icon && <tab.icon className="w-4 h-4" />}
               <span>{tab.label}</span>
-              <span className="text-xs opacity-70">{tab.count}</span>
+              <span className="ml-1.5 text-xs opacity-70">
+                {(bettingMarkets[tab.id] || []).length > 0 ? (bettingMarkets[tab.id] || []).length : '—'}
+              </span>
               {activeTab === tab.id && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-500" />
               )}
             </button>
           ))}
-          <button className="ml-auto px-4 py-2 bg-green-500 text-white rounded-lg font-semibold flex items-center gap-2 flex-shrink-0">
-            PAIEMENT ANTICIPÉ
-            <ChevronDown className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
       {/* Betting Markets */}
       <div className="space-y-4">
+        {oddsLoading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 text-accent-primary animate-spin mr-2" />
+            <span className="text-text-secondary">Chargement des cotes...</span>
+          </div>
+        )}
+
+        {!oddsLoading && currentMarkets.length === 0 && (
+          <div className="text-center py-12 text-text-secondary">
+            <AlertCircle className="w-10 h-10 mx-auto mb-3 opacity-40" />
+            <p>Aucune cote disponible pour ce marché</p>
+          </div>
+        )}
+
         {currentMarkets.map((market) => {
           const isExpanded = expandedMarkets.has(market.id)
           const isTotal = market.type === 'total'
-          const isHandicap = market.type === 'handicap'
 
           return (
-            <div
-              key={market.id}
-              className="bg-bg-secondary rounded-lg border border-border-primary overflow-hidden"
-            >
+            <div key={market.id} className="bg-bg-secondary rounded-lg border border-border-primary overflow-hidden">
               {/* Market Header */}
               <button
                 onClick={() => toggleMarket(market.id)}
@@ -470,9 +377,10 @@ export default function MatchDetailPage() {
                 <div className="px-4 pb-4">
                   {isTotal ? (
                     <div className="space-y-2">
-                      {Array.from({ length: market.options.length / 2 }).map((_, i) => {
+                      {Array.from({ length: Math.floor(market.options.length / 2) }).map((_, i) => {
                         const overOption = market.options[i * 2]
                         const underOption = market.options[i * 2 + 1]
+                        if (!overOption || !underOption) return null
                         return (
                           <div key={i} className="flex gap-2">
                             <button
@@ -488,31 +396,6 @@ export default function MatchDetailPage() {
                             >
                               <div className="text-sm text-text-secondary mb-1">{underOption.label}</div>
                               <div className="text-lg font-bold text-text-primary">{underOption.odds.toFixed(2)}</div>
-                            </button>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : isHandicap ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      {Array.from({ length: market.options.length / 2 }).map((_, i) => {
-                        const homeOption = market.options[i * 2]
-                        const awayOption = market.options[i * 2 + 1]
-                        return (
-                          <div key={i} className="space-y-2">
-                            <button
-                              onClick={() => handleOddsClick(homeOption.label, homeOption.odds)}
-                              className="w-full px-4 py-3 bg-bg-tertiary hover:bg-green-500 hover:text-white rounded-lg transition-colors text-left"
-                            >
-                              <div className="text-sm text-text-secondary mb-1">{homeOption.label}</div>
-                              <div className="text-lg font-bold text-text-primary text-right">{homeOption.odds.toFixed(2)}</div>
-                            </button>
-                            <button
-                              onClick={() => handleOddsClick(awayOption.label, awayOption.odds)}
-                              className="w-full px-4 py-3 bg-bg-tertiary hover:bg-green-500 hover:text-white rounded-lg transition-colors text-left"
-                            >
-                              <div className="text-sm text-text-secondary mb-1">{awayOption.label}</div>
-                              <div className="text-lg font-bold text-text-primary text-right">{awayOption.odds.toFixed(2)}</div>
                             </button>
                           </div>
                         )

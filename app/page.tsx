@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import BannerCarousel from '@/components/home/BannerCarousel'
+import AdBanner from '@/components/layout/AdBanner'
 import SearchBar from '@/components/home/SearchBar'
 import CategoryGrid from '@/components/home/CategoryGrid'
 import CategoryTabs from '@/components/home/CategoryTabs'
 import GameCarousel from '@/components/games/GameCarousel'
 import GameActivityTable from '@/components/home/GameActivityTable'
+import LiveScoresWidget from '@/components/home/LiveScoresWidget'
+import { useI18n } from '@/lib/i18n'
 
 interface Game {
   id: string
@@ -39,6 +41,7 @@ interface Banner {
 }
 
 export default function Home() {
+  const { t } = useI18n()
   const [categories, setCategories] = useState<Category[]>([])
   const [activeCategory, setActiveCategory] = useState<string>('lobby')
   const [popularGames, setPopularGames] = useState<Game[]>([])
@@ -306,71 +309,67 @@ export default function Home() {
       const categoriesData = await categoriesRes.json()
       const loadedCategories = categoriesData.categories || []
       setCategories([
-        { id: 'lobby', name: 'Lobby', slug: 'lobby' },
+        { id: 'lobby', name: t('home.lobby', 'Lobby'), slug: 'lobby' },
         ...loadedCategories
       ])
 
-      // Load popular games - use mock data if empty
+      // Load popular games
       const popularRes = await fetch('/api/games/popular?limit=10')
       const popularData = await popularRes.json()
-      const loadedPopular = popularData.games || []
-      setPopularGames(loadedPopular.length > 0 ? loadedPopular : getMockGames())
+      setPopularGames(popularData.games || [])
 
-      // Load Shartbandee Originaux games - use mock data if empty
+      // Load Shartbandee Originaux games
       const bcOriginauxRes = await fetch('/api/games?category=bc-originaux&limit=10')
       const bcOriginauxData = await bcOriginauxRes.json()
-      const loadedBcOriginaux = bcOriginauxData.games || []
-      setBcOriginauxGames(loadedBcOriginaux.length > 0 ? loadedBcOriginaux : getMockGames().filter(g => g.is_original))
+      setBcOriginauxGames(bcOriginauxData.games || [])
 
-      // Continue Playing - use mock data (user-specific, will be implemented later)
-      const allMockGames = getMockGames()
-      setContinuePlayingGames(allMockGames.slice(0, 5))
+      // Continue Playing - requires auth, skip for guests
+      setContinuePlayingGames([])
 
-      // Load recent wins - use mock data if empty
+      // Load recent wins
       const winsRes = await fetch('/api/games/recent-wins?limit=10')
       const winsData = await winsRes.json()
-      const loadedWins = winsData.wins || []
-      setRecentWins(loadedWins.length > 0 ? loadedWins : getMockWins())
+      setRecentWins(winsData.wins || [])
 
-      // Load game activities - use mock data
-      setGameActivities(getMockActivities())
+      // Load game activities from API (or empty)
+      setGameActivities([])
 
       // Load banners (mock data with gradient backgrounds)
       setBanners([
         {
           id: '1',
-          title: 'UFC ASSURANCE KO',
-          description: 'Parier maintenant et gagnez gros!',
+          title: t('home.ufcBannerTitle', 'UFC ASSURANCE KO'),
+          description: t('home.ufcBannerDesc', 'Parier maintenant et gagnez gros!'),
           image_url: '',
           link_url: '/sports',
-          button_text: 'PARIER MAINTENANT',
+          button_text: t('home.ufcBannerBtn', 'PARIER MAINTENANT'),
           type: 'ufc'
         },
         {
           id: '2',
-          title: '180% Bonus de Dépôt',
-          description: 'S\'inscrire -> Dépôt -> Obtenez un bonus',
+          title: t('home.bonusBannerTitle', '180% Bonus de Dépôt'),
+          description: t('home.bonusBannerDesc', "S'inscrire -> Dépôt -> Obtenez un bonus"),
           image_url: '',
           link_url: '/wallet',
-          button_text: 'Dépôsez Maintenant',
+          button_text: t('home.bonusBannerBtn', 'Dépôsez Maintenant'),
           type: 'bonus'
         },
         {
           id: '3',
-          title: 'ANNIVERSAIRE 2025',
-          description: 'C\'EST LA FÊTE CHEZ Shartbandee!',
+          title: t('home.anniversaryBannerTitle', 'ANNIVERSAIRE 2025'),
+          description: t('home.anniversaryBannerDesc', "C'EST LA FÊTE CHEZ SHARTBANDEE!"),
           image_url: '',
           link_url: '/promotions',
-          button_text: 'OUER MAINTENANT',
+          button_text: t('home.anniversaryBannerBtn', 'JOUER MAINTENANT'),
           type: 'anniversary'
         },
         {
           id: '4',
-          title: 'JACKPOT LOTERIE GRATUITE',
-          description: 'Nouveau joueur? Gagnez un jackpot gratuit!',
+          title: t('home.lotteryBannerTitle', 'JACKPOT LOTERIE GRATUITE'),
+          description: t('home.lotteryBannerDesc', 'Nouveau joueur? Gagnez un jackpot gratuit!'),
           image_url: '',
           link_url: '/lottery',
-          button_text: 'OUER MAINTENANT',
+          button_text: t('home.lotteryBannerBtn', 'JOUER MAINTENANT'),
           type: 'lottery'
         }
       ])
@@ -387,9 +386,9 @@ export default function Home() {
   }
 
   const handleGameClick = (game: Game) => {
-    // Handle game launch - will be implemented in Phase 5
-    console.log('Launch game:', game)
-    // For now, just log it
+    if (game.slug) {
+      window.location.href = `/games/${game.slug}`
+    }
   }
 
   const handleSearch = (query: string) => {
@@ -401,7 +400,7 @@ export default function Home() {
     return (
       <div className="w-full">
         <div className="text-center">
-          <p className="text-text-secondary">Chargement...</p>
+          <p className="text-text-secondary">{t('common.loading', 'Chargement...')}</p>
         </div>
       </div>
     )
@@ -409,13 +408,14 @@ export default function Home() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden">
-      {/* Banner Carousel */}
-      {banners.length > 0 && (
-        <BannerCarousel banners={banners} autoPlay={true} />
-      )}
+      {/* Banner Carousel — real banner images */}
+      <AdBanner context="home" />
 
       {/* Search Bar */}
       <SearchBar onSearch={handleSearch} />
+
+      {/* Phase 3: Live Scores Widget */}
+      <LiveScoresWidget />
 
       {/* Category Grid */}
       <CategoryGrid />
@@ -434,7 +434,7 @@ export default function Home() {
         {/* Continue Playing */}
         {continuePlayingGames.length > 0 && (
           <GameCarousel
-            title="Continuer à jouer"
+            title={t('home.continuePlaying', 'Continuer à jouer')}
             games={continuePlayingGames}
             viewAllHref="/games?recent=true"
             onGameClick={handleGameClick}
@@ -444,7 +444,7 @@ export default function Home() {
         {/* Shartbandee Originaux */}
         {bcOriginauxGames.length > 0 && (
           <GameCarousel
-            title="Shartbandee Originals"
+            title={t('home.originals', 'Shartbandee Originals')}
             games={bcOriginauxGames}
             viewAllHref="/games?category=shartbandee-originaux"
             onGameClick={handleGameClick}
@@ -454,7 +454,7 @@ export default function Home() {
         {/* Popular Games */}
         {popularGames.length > 0 && (
           <GameCarousel
-            title="Jeux populaires"
+            title={t('home.popularGames', 'Jeux populaires')}
             games={popularGames}
             viewAllHref="/games?category=jeux-populaires"
             onGameClick={handleGameClick}
@@ -466,7 +466,7 @@ export default function Home() {
         {recentWins.length > 0 && (
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-text-primary mb-4">
-              Grandes victoires récentes
+              {t('home.recentWins', 'Grandes victoires récentes')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {recentWins.slice(0, 6).map((win) => (

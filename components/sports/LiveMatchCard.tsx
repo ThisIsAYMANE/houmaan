@@ -2,6 +2,7 @@
 
 import { Play, Tv, BarChart3, Heart, TrendingUp, TrendingDown, ChevronDown, Radio } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import LiveScoreOverlay from '@/components/sports/LiveScoreOverlay'
 
 interface Match {
   id: string
@@ -36,6 +37,13 @@ interface LiveMatchCardProps {
   onFavorite?: (matchId: string) => void
   variant?: 'carousel' | 'grid'
   showAllMarkets?: boolean
+  /** Phase 3: real-time score from /api/sports/scores */
+  liveScore?: {
+    home: string | null
+    away: string | null
+    completed: boolean
+    lastUpdate?: string | null
+  } | null
 }
 
 export default function LiveMatchCard({
@@ -46,7 +54,8 @@ export default function LiveMatchCard({
   onStats,
   onFavorite,
   variant = 'grid',
-  showAllMarkets = false
+  showAllMarkets = false,
+  liveScore = null,
 }: LiveMatchCardProps) {
   const router = useRouter()
   const isLive = match.is_live || match.status === 'live'
@@ -131,13 +140,27 @@ export default function LiveMatchCard({
             <span className="text-text-primary font-semibold truncate">
               {match.home_team}
             </span>
-            <span className="text-xl font-bold text-text-primary ml-2">
-              {match.home_score}
-            </span>
           </div>
 
-          {/* Score Separator */}
-          <div className="px-2 text-text-secondary">-</div>
+          {/* Score — Phase 3: use LiveScoreOverlay when live score available */}
+          <div className="px-3 flex-shrink-0 flex flex-col items-center">
+            {liveScore ? (
+              <LiveScoreOverlay
+                homeScore={liveScore.home}
+                awayScore={liveScore.away}
+                isLive={match.is_live}
+                minute={match.match_minute}
+                half={match.half}
+                completed={liveScore.completed}
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-text-primary">{match.home_score}</span>
+                <span className="text-text-secondary">-</span>
+                <span className="text-xl font-bold text-text-primary">{match.away_score}</span>
+              </div>
+            )}
+          </div>
 
           {/* Away Team */}
           <div className="flex items-center gap-3 flex-1 min-w-0 flex-row-reverse">

@@ -22,10 +22,34 @@ interface WalletKey {
   created_at: Date
 }
 
-// Master seed (in production, this should be stored securely, not in code!)
-// For testnet, we'll generate a random seed
-// WARNING: In production, use a secure key management system!
-const MASTER_SEED = process.env.BITCOIN_MASTER_SEED || generateRandomSeed()
+// Master seed — MUST be set via BITCOIN_MASTER_SEED env var in production.
+// Issue #11: If missing in production, throw immediately to prevent data loss.
+// In development, fall back to a random seed with a loud warning.
+function getMasterSeed(): string {
+  const envSeed = process.env.BITCOIN_MASTER_SEED
+  if (envSeed) return envSeed
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      '[Bitcoin Wallet] CRITICAL: BITCOIN_MASTER_SEED is not set in production. ' +
+      'Refusing to start with a random seed — previously generated addresses would be unrecoverable. ' +
+      'Generate a seed with: node -e "require(\'crypto\').randomBytes(32).toString(\'hex\')" ' +
+      'and set BITCOIN_MASTER_SEED in your .env file.'
+    )
+  }
+
+  // Development: use random seed, but warn loudly
+  const randomSeed = generateRandomSeed()
+  console.warn(
+    '\n⚠️  [Bitcoin Wallet] WARNING: BITCOIN_MASTER_SEED is not set.\n' +
+    '   Using a random seed for this server session.\n' +
+    '   This means different addresses on every restart.\n' +
+    '   Set BITCOIN_MASTER_SEED in .env to fix this for development.\n'
+  )
+  return randomSeed
+}
+
+const MASTER_SEED = getMasterSeed()
 
 function generateRandomSeed(): string {
   // Generate a random 32-byte seed (64 hex characters)

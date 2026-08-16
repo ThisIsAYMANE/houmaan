@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import ConditionalLayout from '@/components/layout/ConditionalLayout'
 import { Inter } from 'next/font/google'
+import { I18nProvider } from '@/lib/i18n'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,9 +19,11 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={`${inter.className} bg-bg-primary text-text-primary antialiased`}>
-        <ConditionalLayout>
-          {children}
-        </ConditionalLayout>
+        <I18nProvider>
+          <ConditionalLayout>
+            {children}
+          </ConditionalLayout>
+        </I18nProvider>
       </body>
     </html>
   )

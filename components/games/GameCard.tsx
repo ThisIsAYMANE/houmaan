@@ -3,36 +3,67 @@
 import { Users } from 'lucide-react'
 
 interface GameCardProps {
-  id: string
-  title: string
+  id?: string
+  title?: string
   thumbnailUrl?: string
-  providerName: string
+  providerName?: string
   providerLogo?: string
   playerCount?: number
   multiplier?: number
   isNew?: boolean
   isExclusive?: boolean
   isOriginal?: boolean
+  isFeatured?: boolean
   onClick?: () => void
+  onPlay?: (id: string) => void
+  game?: {
+    id: string
+    title?: string
+    name?: string
+    thumbnail_url?: string
+    thumbnailUrl?: string
+    thumbnail?: string
+    provider_name?: string
+    providerName?: string
+    provider?: string
+    provider_logo?: string
+    providerLogo?: string
+    player_count?: number
+    playerCount?: number
+    multiplier?: number
+    is_new?: boolean
+    isNew?: boolean
+    is_exclusive?: boolean
+    isExclusive?: boolean
+    is_original?: boolean
+    isOriginal?: boolean
+    is_featured?: boolean
+    isFeatured?: boolean
+    is_favorite?: boolean
+  }
 }
 
-export default function GameCard({
-  id,
-  title,
-  thumbnailUrl,
-  providerName,
-  providerLogo,
-  playerCount = 0,
-  multiplier,
-  isNew = false,
-  isExclusive = false,
-  isOriginal = false,
-  onClick
-}: GameCardProps) {
+export default function GameCard(props: GameCardProps) {
+  const game = props.game
+  const id = props.id || game?.id || ''
+  const title = props.title || game?.title || game?.name || ''
+  const thumbnailUrl = props.thumbnailUrl || game?.thumbnail_url || game?.thumbnailUrl || game?.thumbnail
+  const providerName = props.providerName || game?.provider_name || game?.providerName || game?.provider || ''
+  const providerLogo = props.providerLogo || game?.provider_logo || game?.providerLogo
+  const playerCount = props.playerCount ?? game?.player_count ?? game?.playerCount ?? 0
+  const isOriginal = props.isOriginal ?? game?.is_original ?? game?.isOriginal ?? false
+  const isFeatured = props.isFeatured ?? game?.is_featured ?? game?.isFeatured ?? false
+  const isFavorite = game?.is_favorite ?? false
+
+  const handleClick = () => {
+    if (props.onClick) props.onClick()
+    if (props.onPlay) props.onPlay(id)
+  }
+
   return (
     <div
       className="group relative flex-shrink-0 w-[160px] cursor-pointer snap-start"
-      onClick={onClick}
+      onClick={handleClick}
     >
       {/* Card Container - Square with rounded corners */}
       <div className="relative rounded-lg overflow-hidden bg-bg-tertiary hover:scale-105 transition-transform duration-200 border border-border-primary hover:border-accent-primary">
@@ -50,7 +81,22 @@ export default function GameCard({
                 }}
               />
               {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+                <button
+                  aria-label="play"
+                  onClick={(e) => { e.stopPropagation(); handleClick() }}
+                  className="px-3 py-1 bg-accent-primary text-white text-xs font-bold rounded shadow hover:scale-105 transition-transform"
+                >
+                  Play
+                </button>
+                <button
+                  aria-label="favorite"
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1 text-white hover:text-yellow-400"
+                >
+                  ★
+                </button>
+              </div>
             </>
           ) : (
             <div className="w-full h-full bg-bg-secondary flex items-center justify-center">
@@ -63,6 +109,15 @@ export default function GameCard({
             <div className="absolute top-2 left-2 z-10">
               <span className="px-2 py-0.5 bg-purple-600 text-white text-[10px] font-bold rounded uppercase">
                 JEUX ORIGINAL
+              </span>
+            </div>
+          )}
+
+          {/* Featured badge */}
+          {isFeatured && (
+            <div className="absolute top-2 right-2 z-10">
+              <span className="px-2 py-0.5 bg-yellow-500 text-black text-[10px] font-bold rounded uppercase">
+                Featured
               </span>
             </div>
           )}
@@ -99,4 +154,5 @@ export default function GameCard({
     </div>
   )
 }
+
 

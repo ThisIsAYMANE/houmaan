@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/bonuses/cashback/cron",
+      "schedule": "0 0 * * 1"
+    }
+  ]
+}

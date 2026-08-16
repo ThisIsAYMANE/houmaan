@@ -9,7 +9,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
-import { getSession, getUserById } from '@/lib/auth'
+import { getRequestUser } from '@/lib/request-auth'
 import { query } from '@/lib/db'
 import { rateLimiters } from '@/middleware/rate-limit'
 import { addSecurityHeaders } from '@/middleware/security-headers'
@@ -43,19 +43,7 @@ function toUSDT(amount: number, currency: string): number {
 }
 
 // ── Auth helper ───────────────────────────────────────────────────────────────
-async function getAuthUser(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  const sessionToken = authHeader?.replace('Bearer ', '')
-  if (!sessionToken) return null
 
-  const session = await getSession(sessionToken)
-  if (!session) return null
-
-  const user = await getUserById(session.userId)
-  if (!user || !user.is_active) return null
-
-  return user
-}
 
 // ── POST handler ──────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
@@ -65,7 +53,7 @@ export async function POST(request: NextRequest) {
     if (rateLimitResult) return addSecurityHeaders(rateLimitResult)
 
     // Auth
-    const user = await getAuthUser(request)
+    const user = await getRequestUser(request)
     if (!user) {
       return addSecurityHeaders(errorResponse(new UnauthorizedError('Unauthorized'), 401))
     }
@@ -173,7 +161,7 @@ export async function GET(request: NextRequest) {
     const rateLimitResult = await rateLimiters.standard(request)
     if (rateLimitResult) return addSecurityHeaders(rateLimitResult)
 
-    const user = await getAuthUser(request)
+    const user = await getRequestUser(request)
     if (!user) {
       return addSecurityHeaders(errorResponse(new UnauthorizedError('Unauthorized'), 401))
     }

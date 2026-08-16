@@ -108,7 +108,20 @@ export async function GET() {
     )
   } catch (error) {
     console.error('Error fetching categories:', error)
-    return errorResponse(error)
+    // Fallback: return static categories so the UI renders even when Slotegrator is unreachable
+    // (e.g. local dev without static IP — the real API works on the VPS)
+    const fallbackCategories = [
+      { id: 'slots', name: 'Slots', slug: 'slots' },
+      { id: 'live-casino', name: 'Live Casino', slug: 'live-casino' },
+      { id: 'table-games', name: 'Table Games', slug: 'table-games' },
+      { id: 'jackpot', name: 'Jackpot', slug: 'jackpot' },
+      { id: 'video-poker', name: 'Video Poker', slug: 'video-poker' },
+      { id: 'crash-games', name: 'Crash Games', slug: 'crash-games' },
+    ]
+    return NextResponse.json(
+      { categories: fallbackCategories, fallback: true },
+      { headers: { 'Cache-Control': 'public, max-age=300' } }
+    )
   }
 }
 

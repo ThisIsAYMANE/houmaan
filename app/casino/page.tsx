@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { Home, Target, Flame, Star, Tv, Heart, Circle, Dice6, Search, Filter, X } from 'lucide-react'
+import AdBanner from '@/components/layout/AdBanner'
 import GameCarousel from '@/components/games/GameCarousel'
 import GameCard from '@/components/games/GameCard'
 import GameLaunch from '@/components/casino/GameLaunch'
@@ -10,6 +11,7 @@ import { getCachedData, setCachedData, CACHE_KEYS } from '@/lib/client-cache'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
+import { useI18n } from '@/lib/i18n'
 
 interface Game {
   id: string
@@ -42,6 +44,7 @@ interface Provider {
 }
 
 function CasinoPageContent() {
+  const { t } = useI18n()
   const searchParams = useSearchParams()
   const filterParamsKey = searchParams.toString()
   const { isAuthenticated } = useAuthStore()
@@ -301,6 +304,11 @@ function CasinoPageContent() {
 
   return (
     <div className="min-h-screen bg-bg-primary">
+      {/* Casino Banner Carousel */}
+      <div className="container mx-auto px-4 pt-4">
+        <AdBanner context="casino" />
+      </div>
+
       {/* Top Bar with Search */}
       <div className="sticky top-0 z-40 bg-bg-secondary border-b border-border-primary">
         <div className="container mx-auto px-4 py-3">
@@ -309,7 +317,7 @@ function CasinoPageContent() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-secondary" />
             <input
               type="text"
-              placeholder="Rechercher des jeux..."
+              placeholder={t('casino.searchPlaceholder', 'Rechercher des jeux...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-10 py-2.5 bg-bg-tertiary border border-border-primary rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
@@ -354,7 +362,7 @@ function CasinoPageContent() {
         {loading && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-primary"></div>
-            <p className="text-text-secondary mt-4">Chargement des jeux...</p>
+            <p className="text-text-secondary mt-4">{t('casino.loadingGames', 'Chargement des jeux...')}</p>
           </div>
         )}
 
@@ -366,7 +374,7 @@ function CasinoPageContent() {
               onClick={fetchGames}
               className="px-6 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90"
             >
-              Réessayer
+              {t('casino.retry', 'Réessayer')}
             </button>
           </div>
         )}
@@ -450,8 +458,8 @@ function CasinoPageContent() {
               <div className="text-center py-12">
                 <p className="text-text-secondary text-lg">
                   {searchQuery 
-                    ? 'Aucun jeu ne correspond à votre recherche'
-                    : 'Aucun jeu trouvé dans cette catégorie'}
+                    ? t('casino.noGamesSearch', 'Aucun jeu ne correspond à votre recherche')
+                    : t('casino.noGamesCategory', 'Aucun jeu trouvé dans cette catégorie')}
                 </p>
               </div>
             )}
@@ -477,7 +485,6 @@ export default function CasinoPage() {
       <div className="min-h-screen flex items-center justify-center bg-bg-primary">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-primary"></div>
-          <p className="text-text-secondary mt-4">Chargement...</p>
         </div>
       </div>
     }>

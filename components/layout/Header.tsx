@@ -1,20 +1,45 @@
 'use client'
 
-import { useState } from 'react'
-import { Menu, Search, Gift, MessageCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Menu, Search } from 'lucide-react'
 import Link from 'next/link'
 import BCJetonCard from './BCJetonCard'
 import ProfileDropdown from './ProfileDropdown'
-import NotificationBell from './NotificationBell'
 import CryptoPaymentModal from '@/components/wallet/CryptoPaymentModal'
+import LanguageSwitcher from './LanguageSwitcher'
+
+import { useI18n } from '@/lib/i18n'
 
 interface HeaderProps {
   onMenuClick: () => void
 }
 
+// Issue #2: Only EUR and USD
+const CURRENCIES = [
+  { code: 'EUR', symbol: '€' },
+  { code: 'USD', symbol: '$' },
+]
+
 export default function Header({ onMenuClick }: HeaderProps) {
+  const { t } = useI18n()
   const [depositModalOpen, setDepositModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  // Issue #C: Wire currency select to localStorage
+  const [currency, setCurrency] = useState('EUR')
+
+  // Load persisted currency on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('houman_currency')
+    if (saved && CURRENCIES.find(c => c.code === saved)) {
+      setCurrency(saved)
+    }
+  }, [])
+
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCurrency = e.target.value
+    setCurrency(newCurrency)
+    localStorage.setItem('houman_currency', newCurrency)
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,15 +80,20 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search games..."
+                  placeholder={t('common.search', 'Search games...')}
                   className="w-full pl-10 pr-4 py-2 bg-background-elevated border border-transparent rounded-md text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent-primary transition-colors"
                 />
               </form>
 
-              <select className="px-3 py-2 bg-background-elevated border border-transparent rounded-md text-text-primary focus:outline-none focus:border-accent-primary">
-                <option value="MAD">MAD</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
+              {/* Issue #2 + #C: Only EUR/USD, wired to localStorage */}
+              <select
+                value={currency}
+                onChange={handleCurrencyChange}
+                className="px-3 py-2 bg-background-elevated border border-transparent rounded-md text-text-primary focus:outline-none focus:border-accent-primary"
+              >
+                {CURRENCIES.map(c => (
+                  <option key={c.code} value={c.code}>{c.code}</option>
+                ))}
               </select>
 
               <button
@@ -71,15 +101,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 onClick={() => setDepositModalOpen(true)}
                 className="px-4 py-2 bg-accent-primary text-background-primary rounded-md font-medium hover:bg-accent-primary/90 transition-colors"
               >
-                Deposit
+                {t('nav.deposit', 'Deposit')}
               </button>
             </div>
 
             {/* Right Section */}
             <div className="flex items-center gap-2">
-              <NotificationBell />
-
-              <ProfileDropdown />
+              <LanguageSwitcher />
+              <ProfileDropdown onOpenDeposit={() => setDepositModalOpen(true)} />
             </div>
           </div>
         </div>
@@ -93,7 +122,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           className="px-6 py-3 bg-accent-primary text-background-primary rounded-full font-bold shadow-lg hover:bg-accent-primary/90 transition-colors"
           style={{ boxShadow: '0 4px 20px rgba(124,58,237,0.5)' }}
         >
-          + Deposit
+          + {t('nav.deposit', 'Deposit')}
         </button>
       </div>
 

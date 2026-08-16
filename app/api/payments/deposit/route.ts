@@ -25,10 +25,22 @@ const depositSchema = z.object({
 
 /**
  * Helper to get authenticated user
+ * Tries: 1) Authorization header  2) X-Session-Token header  3) cookie
  */
 async function getAuthUser(request: NextRequest) {
+  // Try Authorization: Bearer {token}
   const authHeader = request.headers.get('authorization')
-  const sessionToken = authHeader?.replace('Bearer ', '')
+  let sessionToken = authHeader?.replace('Bearer ', '') || null
+
+  // Fallback: try X-Session-Token header (for clients that send it differently)
+  if (!sessionToken) {
+    sessionToken = request.headers.get('x-session-token')
+  }
+
+  // Fallback: try cookie
+  if (!sessionToken) {
+    sessionToken = request.cookies.get('session_token')?.value || null
+  }
 
   if (!sessionToken) {
     return null
@@ -46,6 +58,7 @@ async function getAuthUser(request: NextRequest) {
 
   return user
 }
+
 
 /**
  * POST /api/payments/deposit

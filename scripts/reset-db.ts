@@ -1,14 +1,22 @@
 import 'dotenv/config'
 import { db, query, exec } from '../lib/db'
-import { readFileSync } from 'fs'
+import { readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
 
 async function resetDatabase() {
   console.log('🗑️  Resetting database...')
 
   try {
-    // Drop all tables (in reverse order of dependencies)
+    // Drop ALL tables in reverse dependency order (including crypto payment tables)
     const dropTables = [
+      // Crypto payment monitoring
+      'usdt_payment_monitoring',
+      'eth_payment_monitoring',
+      // Crypto address tables
+      'usdt_addresses',
+      'eth_addresses',
+      'bitcoin_addresses',
+      // App tables
       'schema_migrations',
       'notifications',
       'referrals',
@@ -46,11 +54,22 @@ async function resetDatabase() {
       }
     }
 
-    // Re-run migrations
+    // Re-run ALL migrations in alphabetical order
     console.log('\n🔄 Re-running migrations...')
-    const migrationFile = join(process.cwd(), 'sql', 'migrations', '001_initial_schema.sqlite.sql')
-    const sql = readFileSync(migrationFile, 'utf-8')
-    exec(sql)
+    const migrationsDir = join(process.cwd(), 'sql', 'migrations')
+    const migrationFiles = readdirSync(migrationsDir)
+      .filter(f => f.endsWith('.sqlite.sql'))
+      .sort()
+
+    for (const file of migrationFiles) {
+      try {
+        const sql = readFileSync(join(migrationsDir, file), 'utf-8')
+        exec(sql)
+        console.log(`✅ Applied migration: ${file}`)
+      } catch (error: any) {
+        console.warn(`⚠️  Skipped (already applied or safe to ignore): ${file} — ${error.message}`)
+      }
+    }
 
     // Create migrations record
     await query(`
@@ -61,7 +80,7 @@ async function resetDatabase() {
     `)
     await query("INSERT INTO schema_migrations (version) VALUES (?) ON CONFLICT DO NOTHING", ['001_initial_schema'])
 
-    console.log('🎉 Database reset completed!')
+    console.log('\n🎉 Database reset completed!')
     console.log('💡 Run "npm run db:seed" to populate initial data')
   } catch (error) {
     console.error('❌ Reset failed:', error)

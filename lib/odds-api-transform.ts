@@ -153,23 +153,45 @@ function extractLeagueName(sportKey: string): string {
 
 /**
  * Determine match status from commence_time
+ * Uses sport-specific game durations to avoid falsely marking live games as 'finished'.
+ * Issue #5/#D: Extended cutoffs — NFL ~3.5h, soccer ~2h, hockey ~2.5h, basketball ~2.5h
  */
-function getMatchStatus(commenceTime: string): 'upcoming' | 'live' | 'finished' {
+function getMatchStatus(commenceTime: string, sportKey?: string): 'upcoming' | 'live' | 'finished' {
   const now = new Date()
   const matchTime = new Date(commenceTime)
   const diffMs = matchTime.getTime() - now.getTime()
   const diffHours = diffMs / (1000 * 60 * 60)
-  
-  // If match started more than 3 hours ago, consider it finished
-  if (diffHours < -3) {
+
+  // Determine sport-specific duration in hours
+  let liveDurationHours = 3.5 // conservative default
+  if (sportKey) {
+    if (sportKey.startsWith('americanfootball_')) {
+      liveDurationHours = 5 // NFL games can run 3.5-4h; buffer to 5h
+    } else if (sportKey.startsWith('soccer_')) {
+      liveDurationHours = 2.5 // 90min + extra time = ~2h; buffer to 2.5h
+    } else if (sportKey.startsWith('basketball_')) {
+      liveDurationHours = 3 // NBA ~2.5h; buffer to 3h
+    } else if (sportKey.startsWith('icehockey_')) {
+      liveDurationHours = 4 // NHL + OT/shootout up to 3.5h; buffer to 4h
+    } else if (sportKey.startsWith('baseball_')) {
+      liveDurationHours = 4 // MLB ~3h; buffer to 4h
+    } else if (sportKey.startsWith('tennis_')) {
+      liveDurationHours = 5 // Grand slams can be 4-5h
+    } else if (sportKey.startsWith('mma_') || sportKey.startsWith('boxing_')) {
+      liveDurationHours = 4 // Cards can be long
+    }
+  }
+
+  // If match started more than liveDurationHours ago, consider it finished
+  if (diffHours < -liveDurationHours) {
     return 'finished'
   }
-  
-  // If match started but less than 3 hours ago, consider it live
+
+  // If match started but within the live window, consider it live
   if (diffHours < 0) {
     return 'live'
   }
-  
+
   return 'upcoming'
 }
 
@@ -243,7 +265,8 @@ export function transformOddsApiEventToMatch(event: Event): TransformedMatch {
   const sportSlug = mapSportKeyToSlug(event.sport_key)
   const sportName = mapSportKeyToName(event.sport_key)
   const leagueName = extractLeagueName(event.sport_key)
-  const status = getMatchStatus(event.commence_time)
+  // Issue #D: Pass sport_key to get correct duration
+  const status = getMatchStatus(event.commence_time, event.sport_key)
   const isLive = status === 'live'
 
   // Extract odds
@@ -273,15 +296,16 @@ export function transformOddsApiEventToMatch(event: Event): TransformedMatch {
     )
 
     if (homeOutcome && awayOutcome) {
-      // Convert American odds to decimal if needed
+      // Issue #12: Odds now come as decimal directly from API (oddsFormat: 'decimal')
+      // No conversion needed. If odds look like american (large absolute values), they're already decimal.
       const homePrice = homeOutcome.price
       const awayPrice = awayOutcome.price
       const drawPrice = drawOutcome?.price
 
       h2hOdds = {
-        home: homePrice > 0 ? americanToDecimal(homePrice) : americanToDecimal(homePrice),
-        away: awayPrice > 0 ? americanToDecimal(awayPrice) : americanToDecimal(awayPrice),
-        ...(drawPrice && { draw: drawPrice > 0 ? americanToDecimal(drawPrice) : americanToDecimal(drawPrice) }),
+        home: homePrice,
+        away: awayPrice,
+        ...(drawPrice !== undefined && { draw: drawPrice }),
       }
     }
   }

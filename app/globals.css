@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Dark mode (default) ─────────────────────────────── */
   :root {
     --background-primary: #1a1a1a;
     --background-secondary: #2a2a2a;
@@ -11,10 +12,31 @@
     --accent-secondary: #9333ea;
     --text-primary: #ffffff;
     --text-secondary: #d1d5db;
+    --border-primary: #3a3a3a;
+    --scrollbar-thumb: #3a3a3a;
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2a2a2a;
+    --bg-tertiary: #3a3a3a;
+  }
+
+  /* ── Light mode — activated when html does NOT have .dark ── */
+  html:not(.dark) {
+    --background-primary: #f4f4f5;
+    --background-secondary: #ffffff;
+    --background-elevated: #e4e4e7;
+    --accent-primary: #16a34a;
+    --accent-secondary: #9333ea;
+    --text-primary: #09090b;
+    --text-secondary: #52525b;
+    --border-primary: #d4d4d8;
+    --scrollbar-thumb: #d4d4d8;
+    --bg-primary: #f4f4f5;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e4e4e7;
   }
 
   * {
-    border-color: var(--background-elevated);
+    border-color: var(--border-primary);
   }
 
   html {
@@ -23,10 +45,12 @@
   }
 
   body {
-    @apply bg-background-primary text-text-primary;
+    background-color: var(--background-primary);
+    color: var(--text-primary);
     font-feature-settings: 'rlig' 1, 'calt' 1;
     overflow-x: hidden;
     max-width: 100vw;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /* Scrollbar Styling */
@@ -36,15 +60,17 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-background-secondary;
+    background-color: var(--background-secondary);
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-background-elevated rounded-md;
+    background-color: var(--scrollbar-thumb);
+    border-radius: 0.375rem;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-accent-primary/30;
+    background-color: var(--accent-primary);
+    opacity: 0.3;
   }
 }
 
@@ -61,75 +87,12 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Theme-aware utility classes */
+  .bg-bg-primary    { background-color: var(--background-primary); }
+  .bg-bg-secondary  { background-color: var(--background-secondary); }
+  .bg-bg-tertiary   { background-color: var(--background-elevated); }
+  .text-text-primary   { color: var(--text-primary); }
+  .text-text-secondary { color: var(--text-secondary); }
+  .border-border-primary { border-color: var(--border-primary); }
 }
-
-
-
-
-
-@tailwind utilities;
-
-@layer base {
-  :root {
-    --background-primary: #1a1a1a;
-    --background-secondary: #2a2a2a;
-    --background-elevated: #3a3a3a;
-    --accent-primary: #00ff00;
-    --accent-secondary: #9333ea;
-    --text-primary: #ffffff;
-    --text-secondary: #d1d5db;
-  }
-
-  * {
-    border-color: var(--background-elevated);
-  }
-
-  html {
-    overflow-x: hidden;
-    max-width: 100vw;
-  }
-
-  body {
-    @apply bg-background-primary text-text-primary;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
-    overflow-x: hidden;
-    max-width: 100vw;
-  }
-
-  /* Scrollbar Styling */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-background-secondary;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-background-elevated rounded-md;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-accent-primary/30;
-  }
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-
-
-

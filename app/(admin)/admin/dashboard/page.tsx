@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Users, 
@@ -10,7 +10,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Bitcoin,
-  Activity
+  Activity,
+  RefreshCw,
+  BarChart2
 } from 'lucide-react'
 import {
   LineChart,
@@ -93,6 +95,7 @@ export default function AdminDashboard() {
   const router = useRouter()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem('admin_session_token')
@@ -102,15 +105,18 @@ export default function AdminDashboard() {
     }
 
     fetchStats()
+
+    // Issue Dashboard (Phase 2B): Auto-refresh every 30 seconds
+    const interval = setInterval(() => fetchStats(), 30_000)
+    return () => clearInterval(interval)
   }, [])
 
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('admin_session_token')
       const response = await fetch('/api/admin/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store',
       })
 
       if (response.status === 401) {
@@ -123,6 +129,7 @@ export default function AdminDashboard() {
       const result = await response.json()
       if (result.success) {
         setStats(result.data)
+        setLastRefresh(new Date())
       }
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -151,18 +158,29 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">Tableau de bord</h1>
-        <p className="text-gray-400 mt-2">Vue d'ensemble de votre plateforme</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tableau de bord</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
+            Vue d'ensemble · {lastRefresh ? `Mise à jour ${lastRefresh.toLocaleTimeString('fr-FR')}` : 'Chargement...'}
+          </p>
+        </div>
+        <button
+          onClick={() => { setLoading(true); fetchStats() }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Actualiser
+        </button>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Users Card */}
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Utilisateurs totaux</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Utilisateurs totaux</p>
               <p className="text-3xl font-bold text-white mt-2">{stats.users.total}</p>
               <div className="flex items-center mt-2">
                 <span className="text-green-400 text-sm flex items-center">
@@ -178,15 +196,15 @@ export default function AdminDashboard() {
         </div>
 
         {/* Bitcoin Deposits Card */}
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Dépôts Bitcoin</p>
-              <p className="text-3xl font-bold text-white mt-2">{stats.bitcoin.totalDeposits}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Dépôts Bitcoin</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stats.bitcoin.totalDeposits}</p>
               <div className="flex items-center mt-2">
                 <span className="text-orange-400 text-sm flex items-center">
                   <Bitcoin className="w-4 h-4 mr-1" />
-                  {stats.bitcoin.totalBTC.toFixed(4)} BTC
+                  {(stats.bitcoin.totalBTC ?? 0).toFixed(6)} BTC
                 </span>
               </div>
             </div>
@@ -197,13 +215,13 @@ export default function AdminDashboard() {
         </div>
 
         {/* Betting Card */}
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Paris totaux</p>
-              <p className="text-3xl font-bold text-white mt-2">{stats.betting.total}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Paris totaux</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stats.betting.total}</p>
               <div className="flex items-center mt-2">
-                <span className="text-yellow-400 text-sm">
+                <span className="text-yellow-500 text-sm">
                   {stats.betting.pending} en attente
                 </span>
               </div>
@@ -215,21 +233,19 @@ export default function AdminDashboard() {
         </div>
 
         {/* Financial Card */}
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Solde total</p>
-              <p className="text-3xl font-bold text-white mt-2">
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Solde total</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
                 {stats.financial.totalBalance.toLocaleString('fr-FR', {
-                  style: 'currency',
-                  currency: 'EUR',
-                  minimumFractionDigits: 0,
+                  style: 'currency', currency: 'EUR', minimumFractionDigits: 0,
                 })}
               </p>
               <div className="flex items-center mt-2">
-                <span className="text-green-400 text-sm flex items-center">
+                <span className="text-green-500 text-sm flex items-center">
                   <Activity className="w-4 h-4 mr-1" />
-                  {stats.financial.pendingDeposits} en attente
+                  {stats.financial.pendingDeposits} dép. en attente
                 </span>
               </div>
             </div>
@@ -238,117 +254,146 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* GGR Card — Phase 2B new */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">GGR (Revenu brut)</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                {(stats.financial.totalDeposits - stats.financial.totalWithdrawals).toLocaleString('fr-FR', {
+                  style: 'currency', currency: 'EUR', minimumFractionDigits: 0,
+                })}
+              </p>
+              <div className="flex items-center mt-2">
+                <span className="text-purple-400 text-sm">
+                  {stats.financial.totalDeposits > 0
+                    ? ((1 - stats.financial.totalWithdrawals / stats.financial.totalDeposits) * 100).toFixed(1)
+                    : '0.0'}% house edge
+                </span>
+              </div>
+            </div>
+            <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+              <BarChart2 className="w-6 h-6 text-purple-500" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Growth Chart */}
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <h2 className="text-xl font-bold text-white mb-4">Croissance des utilisateurs</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={userGrowthData}>
-              <defs>
-                <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="name" stroke="#9ca3af" />
-              <YAxis stroke="#9ca3af" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1f2937', 
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  color: '#fff'
-                }} 
-              />
-              <Area 
-                type="monotone" 
-                dataKey="users" 
-                stroke="#10b981" 
-                fillOpacity={1}
-                fill="url(#colorUsers)" 
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Croissance des utilisateurs</h2>
+          {userGrowthData.length === 0 ? (
+            <div className="flex items-center justify-center h-[300px] text-gray-400 text-sm">Aucune donnée pour cette période</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={userGrowthData}>
+                <defs>
+                  <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="name" stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1f2937', 
+                    border: '1px solid #374151',
+                    borderRadius: '8px',
+                    color: '#fff'
+                  }} 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="users" 
+                  stroke="#10b981" 
+                  fillOpacity={1}
+                  fill="url(#colorUsers)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Revenue Chart */}
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <h2 className="text-xl font-bold text-white mb-4">Revenus et dépôts</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="name" stroke="#9ca3af" />
-              <YAxis stroke="#9ca3af" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1f2937', 
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  color: '#fff'
-                }} 
-              />
-              <Legend />
-              <Bar dataKey="revenue" fill="#10b981" name="Revenus" />
-              <Bar dataKey="deposits" fill="#3b82f6" name="Dépôts" />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Revenus et dépôts</h2>
+          {revenueData.length === 0 ? (
+            <div className="flex items-center justify-center h-[300px] text-gray-400 text-sm">Aucune donnée pour cette période</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="name" stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
+                <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', color: '#fff' }} />
+                <Legend />
+                <Bar dataKey="revenue" fill="#10b981" name="Revenus" />
+                <Bar dataKey="deposits" fill="#3b82f6" name="Dépôts" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Bet Status Pie Chart */}
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <h2 className="text-xl font-bold text-white mb-4">Statut des paris</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={betStatusData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {betStatusData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1f2937', 
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  color: '#fff'
-                }} 
-              />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Statut des paris</h2>
+          {betStatusData.every(d => d.value === 0) ? (
+            <div className="flex items-center justify-center h-[300px] text-gray-400 text-sm">Aucun pari enregistré</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={betStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {betStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1f2937', 
+                    border: '1px solid #374151',
+                    borderRadius: '8px',
+                    color: '#fff'
+                  }} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
-        {/* Activity Timeline - Total Bets Over Time */}
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <h2 className="text-xl font-bold text-white mb-4">Montant total misé</h2>
-          <div className="text-center py-20">
-            <p className="text-4xl font-bold text-white">
+        {/* Wagered summary card */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Montant total misé</h2>
+          <div className="text-center py-12">
+            <p className="text-4xl font-bold text-gray-900 dark:text-white">
               {stats?.betting.totalWagered.toLocaleString('fr-FR', {
                 style: 'currency',
                 currency: 'EUR',
                 minimumFractionDigits: 0,
               })}
             </p>
-            <p className="text-gray-400 mt-2">Montant total des paris</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">Montant total des paris</p>
             <div className="mt-6 grid grid-cols-2 gap-4">
-              <div className="bg-gray-700 p-4 rounded-lg">
-                <p className="text-gray-400 text-sm">Paris actifs</p>
-                <p className="text-2xl font-bold text-yellow-400">{stats?.betting.pending || 0}</p>
+              <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Paris actifs</p>
+                <p className="text-2xl font-bold text-yellow-500">{stats?.betting.pending || 0}</p>
               </div>
-              <div className="bg-gray-700 p-4 rounded-lg">
-                <p className="text-gray-400 text-sm">Paris totaux</p>
-                <p className="text-2xl font-bold text-green-400">{stats?.betting.total || 0}</p>
+              <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Paris totaux</p>
+                <p className="text-2xl font-bold text-green-500">{stats?.betting.total || 0}</p>
               </div>
             </div>
           </div>

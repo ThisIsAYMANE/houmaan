@@ -168,7 +168,7 @@ export default function ConnectWalletButton({
                 </svg>
               )}
               {!connector.name.toLowerCase().includes('metamask') && !connector.name.toLowerCase().includes('walletconnect') && (
-                <span className="connector-generic-icon">🔗</span>
+                <span className="connector-generic-icon">&#x2022;</span>
               )}
               <span>{connector.name}</span>
               {isConnecting && <span className="connector-loading">…</span>}
@@ -266,7 +266,7 @@ export default function ConnectWalletButton({
             </>
           ) : (
             <>
-              🚀 Send {amount} {tokenType === 'eth' ? 'ETH' : 'USDT'}
+              Send {amount} {tokenType === 'eth' ? 'ETH' : 'USDT'}
             </>
           )}
         </button>

@@ -3,6 +3,14 @@ import { getSportOdds, getSports } from '@/lib/odds-api'
 import { transformOddsApiEventsToMatches } from '@/lib/odds-api-transform'
 import { getCachedData } from '@/lib/api-cache'
 
+/**
+ * The Odds API requires dates in YYYY-MM-DDTHH:MM:SSZ format (no milliseconds).
+ * JavaScript's toISOString() produces "2026-08-14T00:31:42.919Z" which causes 422.
+ */
+function toOddsApiDate(date: Date): string {
+  return date.toISOString().replace(/\.\d{3}Z$/, 'Z')
+}
+
 // Next.js route segment config for caching
 export const revalidate = 60 // Revalidate every minute (odds change frequently)
 
@@ -111,13 +119,17 @@ export async function GET(request: NextRequest) {
         })
       }
 
-      // Fetch from ALL active sports in parallel (no limit - get all matches from all sports)
+      // Issue #5/#9/#12: eu,uk,us covers soccer bookmakers; h2h is universal and cheaper quota
       const sportsToFetch = allActiveSports
+      const sixHoursAgo = toOddsApiDate(new Date(Date.now() - 6 * 60 * 60 * 1000))
+      const sevenDaysFromNow = toOddsApiDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
       const eventsPromises = sportsToFetch.map(sport =>
         getSportOdds(sport, {
-          regions: 'us',
-          markets: 'h2h,spreads,totals',
-          oddsFormat: 'american',
+          regions: 'eu,uk,us',
+          markets: 'h2h',
+          oddsFormat: 'decimal',
+          commenceTimeFrom: sixHoursAgo,
+          commenceTimeTo: sevenDaysFromNow,
         }).catch(error => {
           console.warn(`Failed to fetch events for ${sport}:`, error)
           return [] // Return empty array on error
@@ -162,11 +174,15 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Fetch odds from Odds API for specific sport
+    // Issue #5/#9/#12: eu,uk,us + h2h + decimal
+    const sixHoursAgo2 = toOddsApiDate(new Date(Date.now() - 6 * 60 * 60 * 1000))
+    const sevenDaysFromNow2 = toOddsApiDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
     const events = await getSportOdds(sportKey, {
-      regions: 'us',
-      markets: 'h2h,spreads,totals',
-      oddsFormat: 'american',
+      regions: 'eu,uk,us',
+      markets: 'h2h',
+      oddsFormat: 'decimal',
+      commenceTimeFrom: sixHoursAgo2,
+      commenceTimeTo: sevenDaysFromNow2,
     })
 
     // Transform to our match format
@@ -197,11 +213,39 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching matches from Odds API:', error)
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    
+
+    // Issue #F: Detect quota exhaustion — return a specific error key so the UI can show a friendly message
+    const isQuotaError =
+      errorMessage.toLowerCase().includes('quota') ||
+      errorMessage.toLowerCase().includes('429') ||
+      errorMessage.includes('Too Many Requests') ||
+      errorMessage.includes('You have used all your requests')
+
+    if (isQuotaError) {
+      return NextResponse.json(
+        {
+          error: 'quota_exhausted',
+          message: 'Le quota de requêtes API est épuisé. Réessayez dans quelques minutes.',
+        },
+        { status: 429 }
+      )
+    }
+
+    const isConfigError = errorMessage.includes('ODDS_API_KEY')
+    if (isConfigError) {
+      return NextResponse.json(
+        {
+          error: 'Odds API not configured',
+          message: 'Please set ODDS_API_KEY in your .env file',
+        },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to fetch matches',
         message: errorMessage,
       },

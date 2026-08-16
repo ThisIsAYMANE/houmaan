@@ -10,15 +10,22 @@ const BETTING_LIMITS = {
   USER_MAX_PENDING: 50  // Maximum pending bets per user
 }
 
-// Get session from cookie (simplified - in production use proper auth)
+// Get session from Authorization header (Bearer token) or fallback to cookie
 async function getUserId(request: NextRequest): Promise<string | null> {
-  const sessionCookie = request.cookies.get('session')
-  if (!sessionCookie) return null
-  
+  // Prefer Authorization: Bearer <token> (what the frontend sends)
+  const authHeader = request.headers.get('authorization')
+  const sessionToken = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : request.headers.get('x-session-token') ||
+      request.cookies.get('session')?.value ||
+      request.cookies.get('session_token')?.value
+
+  if (!sessionToken) return null
+
   try {
     const session = await queryOne<{ user_id: string }>(
       'SELECT user_id FROM sessions WHERE session_token = ? AND expires > CURRENT_TIMESTAMP',
-      [sessionCookie.value]
+      [sessionToken]
     )
     return session?.user_id || null
   } catch {

@@ -20,26 +20,15 @@ const schema = z.object({
   depositId: z.string().min(1),
 })
 
-async function getAuthUser(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  const sessionToken = authHeader?.replace('Bearer ', '')
-  if (!sessionToken) return null
+import { getRequestUser } from '@/lib/request-auth'
 
-  const session = await getSession(sessionToken)
-  if (!session) return null
-
-  const user = await getUserById(session.userId)
-  if (!user || !user.is_active) return null
-
-  return user
-}
 
 export async function POST(request: NextRequest) {
   try {
     const rateLimitResult = await rateLimiters.standard(request)
     if (rateLimitResult) return addSecurityHeaders(rateLimitResult)
 
-    const user = await getAuthUser(request)
+    const user = await getRequestUser(request)
     if (!user) {
       return addSecurityHeaders(errorResponse(new UnauthorizedError('Unauthorized'), 401))
     }

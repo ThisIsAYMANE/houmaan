@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   DollarSign, 
@@ -13,8 +13,12 @@ import {
   Download,
   Bitcoin,
   Wallet,
-  TrendingUpIcon
+  TrendingUpIcon,
+  CheckCircle,
+  XCircle,
+  BarChart2
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface FinancialData {
   totalDeposits: number
@@ -85,8 +89,8 @@ export default function FinancialPage() {
           totalDeposits: result.data.financial.totalDeposits,
           totalWithdrawals: result.data.financial.totalWithdrawals,
           totalBalance: result.data.financial.totalBalance,
-          pendingDeposits: 0,
-          pendingWithdrawals: 0,
+          pendingDeposits: result.data.financial.pendingDeposits ?? 0,
+          pendingWithdrawals: result.data.financial.pendingWithdrawals ?? 0,
         })
       }
     } catch (error) {
@@ -125,6 +129,49 @@ export default function FinancialPage() {
     } finally {
       setTxLoading(false)
     }
+  }
+
+  // Phase 2B: Approve / Reject / Export
+  const handleApprove = async (txId: string) => {
+    try {
+      const token = localStorage.getItem('admin_session_token')
+      const res = await fetch(`/api/admin/transactions/${txId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' }),
+      })
+      if (res.ok) { toast.success('Transaction approuvée'); fetchTransactions() }
+      else toast.error("Erreur lors de l'approbation")
+    } catch { toast.error('Erreur réseau') }
+  }
+
+  const handleReject = async (txId: string) => {
+    const reason = window.prompt('Raison du rejet (optionnel) :')
+    if (reason === null) return
+    try {
+      const token = localStorage.getItem('admin_session_token')
+      const res = await fetch(`/api/admin/transactions/${txId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'rejected', reason }),
+      })
+      if (res.ok) { toast.success('Transaction rejetée'); fetchTransactions() }
+      else toast.error('Erreur lors du rejet')
+    } catch { toast.error('Erreur réseau') }
+  }
+
+  const handleExportCSV = async () => {
+    const token = localStorage.getItem('admin_session_token')
+    const res = await fetch('/api/admin/reports/transactions', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) { toast.error('Export impossible'); return }
+    const d = await res.json()
+    const blob = new Blob([JSON.stringify(d.data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = 'transactions.json'; a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Export téléchargé')
   }
 
   const getStatusColor = (status: string) => {
@@ -174,10 +221,10 @@ export default function FinancialPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Gestion financière</h1>
-          <p className="text-gray-400 mt-2">Vue d'ensemble des finances de la plateforme</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Gestion financière</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Vue d'ensemble des finances de la plateforme</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+        <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
           <Download className="w-4 h-4" />
           Exporter
         </button>
@@ -335,6 +382,7 @@ export default function FinancialPage() {
                     <th className="pb-3 font-medium">Statut</th>
                     <th className="pb-3 font-medium">Date</th>
                     <th className="pb-3 font-medium">TX Hash</th>
+                    <th className="pb-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
@@ -396,6 +444,29 @@ export default function FinancialPage() {
                           </a>
                         ) : (
                           <span className="text-gray-500">-</span>
+                        )}
+                      </td>
+                      {/* Phase 2B: Approve / Reject actions */}
+                      <td className="py-4">
+                        {tx.status === 'pending' ? (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleApprove(tx.id)}
+                              className="p-1.5 rounded bg-green-500/10 hover:bg-green-500/20 text-green-400 transition-colors"
+                              title="Approuver"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleReject(tx.id)}
+                              className="p-1.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
+                              title="Rejeter"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-gray-600 text-xs">—</span>
                         )}
                       </td>
                     </tr>

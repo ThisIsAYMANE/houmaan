@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import MainLayout from './MainLayout'
+import PopupBanner from './PopupBanner'
 import Web3Provider from '@/components/providers/Web3Provider'
 
 interface ConditionalLayoutProps {
@@ -17,21 +18,11 @@ export default function ConditionalLayout({ children }: ConditionalLayoutProps) 
     return <Web3Provider>{children}</Web3Provider>
   }
 
-  // Wrap regular routes with MainLayout + Web3Provider
+  // Wrap regular routes with MainLayout + Web3Provider + PopupBanner
   return (
     <Web3Provider>
       <MainLayout>{children}</MainLayout>
+      <PopupBanner />
     </Web3Provider>
   )
 }
-
-
-
-
-
-
-
-
-
-
-

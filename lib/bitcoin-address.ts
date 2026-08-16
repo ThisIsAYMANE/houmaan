@@ -21,20 +21,28 @@ interface BitcoinAddress {
 
 /**
  * Generate a unique Bitcoin address for a payment
- * Uses real Bitcoin address generation from HD wallet
+ * Uses real Bitcoin address generation from HD wallet.
+ * Issue #11: Network reads from BITCOIN_NETWORK env var ('mainnet' | 'testnet').
  */
 export async function generatePaymentAddress(
   userId: string,
-  network: BitcoinNetwork = 'testnet'
+  network?: BitcoinNetwork
 ): Promise<string> {
+  // Default to env var; fall back to testnet for safety
+  const resolvedNetwork: BitcoinNetwork =
+    network ??
+    ((process.env.BITCOIN_NETWORK as BitcoinNetwork) || 'testnet')
+
+  console.log(`[Bitcoin Address] Generating ${resolvedNetwork} address for user ${userId}`)
+
   try {
     // Try to use real wallet function
     const walletModule = await import('./bitcoin-wallet')
-    return await walletModule.generatePaymentAddress(userId, network)
+    return await walletModule.generatePaymentAddress(userId, resolvedNetwork)
   } catch (error) {
     // Fallback to placeholder if real generation fails
     console.warn('Real Bitcoin address generation failed, using placeholder:', error)
-    const addressPrefix = network === 'mainnet' ? '1' : 'tb1'
+    const addressPrefix = resolvedNetwork === 'mainnet' ? 'bc1' : 'tb1'
     const randomPart = Math.random().toString(36).substring(2, 15)
     return `${addressPrefix}${randomPart}${Date.now().toString(36)}`
   }

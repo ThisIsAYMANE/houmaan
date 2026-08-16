@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Filter, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Search, Filter, CheckCircle, XCircle, Clock, Settings2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Bet {
   id: string
@@ -19,6 +20,10 @@ export default function BetsPage() {
   const [bets, setBets] = useState<Bet[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'won' | 'lost'>('all')
+  const [settleModal, setSettleModal] = useState<{ open: boolean; betId: string | null }>({
+    open: false, betId: null,
+  })
+  const [settling, setSettling] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('admin_session_token')
@@ -34,25 +39,38 @@ export default function BetsPage() {
     try {
       const token = localStorage.getItem('admin_session_token')
       const response = await fetch('/api/admin/bets', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
       })
-
-      if (response.status === 401) {
-        router.push('/admin/login')
-        return
-      }
-
+      if (response.status === 401) { router.push('/admin/login'); return }
       const result = await response.json()
-      if (result.success) {
-        setBets(result.data || [])
-      }
+      if (result.success) setBets(result.data || [])
     } catch (error) {
       console.error('Error fetching bets:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Phase 2B: Manual settle
+  const handleSettle = async (outcome: 'won' | 'lost' | 'void') => {
+    if (!settleModal.betId) return
+    setSettling(true)
+    try {
+      const token = localStorage.getItem('admin_session_token')
+      const res = await fetch(`/api/admin/bets/${settleModal.betId}/settle`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ outcome }),
+      })
+      if (res.ok) {
+        toast.success(`Pari réglé comme "${outcome}"`)
+        setSettleModal({ open: false, betId: null })
+        fetchBets()
+      } else {
+        const d = await res.json()
+        toast.error(d.error ?? 'Erreur')
+      }
+    } catch { toast.error('Erreur réseau') } finally { setSettling(false) }
   }
 
   const filteredBets = bets.filter(bet => 
@@ -84,8 +102,8 @@ export default function BetsPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Gestion des paris</h1>
-        <p className="text-gray-400 mt-2">Gérer tous les paris de la plateforme</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Gestion des paris</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Gérer tous les paris de la plateforme</p>
       </div>
 
       {/* Filters */}
@@ -153,6 +171,9 @@ export default function BetsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Date
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
@@ -199,6 +220,20 @@ export default function BetsPage() {
                         minute: '2-digit'
                       })}
                     </td>
+                    {/* Phase 2B: Settle action */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {bet.status === 'pending' ? (
+                        <button
+                          onClick={() => setSettleModal({ open: true, betId: bet.id })}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg text-xs font-semibold transition-colors"
+                        >
+                          <Settings2 className="w-3.5 h-3.5" />
+                          Régler
+                        </button>
+                      ) : (
+                        <span className="text-gray-600 text-xs">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
@@ -238,16 +273,41 @@ export default function BetsPage() {
           </p>
         </div>
       </div>
+
+      {/* Manual Settle Modal */}
+      {settleModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSettleModal({ open: false, betId: null })} />
+          <div className="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Régler le pari manuellement</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+              ID: <span className="font-mono text-xs">{settleModal.betId?.slice(0, 12)}...</span>
+            </p>
+            <div className="space-y-3">
+              {(['won', 'lost', 'void'] as const).map(outcome => (
+                <button
+                  key={outcome}
+                  disabled={settling}
+                  onClick={() => handleSettle(outcome)}
+                  className={`w-full py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 ${
+                    outcome === 'won' ? 'bg-green-600 hover:bg-green-700 text-white' :
+                    outcome === 'lost' ? 'bg-red-600 hover:bg-red-700 text-white' :
+                    'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200'
+                  }`}
+                >
+                  {settling ? 'Règlement...' : outcome === 'won' ? 'Gagné' : outcome === 'lost' ? 'Perdu' : 'Annulé (remboursement)'}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setSettleModal({ open: false, betId: null })}
+              className="mt-4 w-full py-2 text-gray-500 dark:text-gray-400 text-sm hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-

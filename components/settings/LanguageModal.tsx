@@ -2,29 +2,36 @@
 
 import { useState } from 'react'
 import { X, Search, Globe } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 const languages = [
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-  { code: 'pt', name: 'Português', flag: '🇵🇹' },
-  { code: 'ar', name: 'العربية', flag: '🇸🇦' },
-  { code: 'zh', name: '中文', flag: '🇨🇳' },
-  { code: 'ja', name: '日本語', flag: '🇯🇵' },
-  { code: 'ko', name: '한국어', flag: '🇰🇷' },
-  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
-  { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
+  { code: 'fr', name: 'Français' },
+  { code: 'en', name: 'English' },
+  { code: 'es', name: 'Español' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'it', name: 'Italiano' },
+  { code: 'pt', name: 'Português' },
+  { code: 'ar', name: 'العربية' },
+  { code: 'zh', name: '中文' },
+  { code: 'ja', name: '日本語' },
+  { code: 'ko', name: '한국어' },
+  { code: 'ru', name: 'Русский' },
+  { code: 'tr', name: 'Türkçe' },
+  { code: 'hi', name: 'हिन्दी' },
+  { code: 'bn', name: 'বাংলা' },
+  { code: 'vi', name: 'Tiếng Việt' },
+  { code: 'th', name: 'ภาษาไทย' },
+  { code: 'id', name: 'Bahasa Indonesia' },
+  { code: 'nl', name: 'Nederlands' },
+  { code: 'pl', name: 'Polski' },
+  { code: 'uk', name: 'Українська' },
+  { code: 'fa', name: 'فارسی' },
 ]
 
+// Issue #2: Only EUR and USD
 const currencies = [
-  { code: 'EUR', name: 'Moroccan Dirham', symbol: 'EUR' },
-  { code: 'USD', name: 'US Dollar', symbol: '$' },
   { code: 'EUR', name: 'Euro', symbol: '€' },
-  { code: 'GBP', name: 'British Pound', symbol: '£' },
-  { code: 'BTC', name: 'Bitcoin', symbol: '₿' },
-  { code: 'ETH', name: 'Ethereum', symbol: 'Ξ' },
+  { code: 'USD', name: 'US Dollar', symbol: '$' },
 ]
 
 interface LanguageModalProps {
@@ -44,6 +51,7 @@ export default function LanguageModal({
   onLanguageChange,
   onCurrencyChange,
 }: LanguageModalProps) {
+  const { setLocale } = useI18n()
   const [activeTab, setActiveTab] = useState<'language' | 'currency'>('language')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -59,6 +67,13 @@ export default function LanguageModal({
     curr.code.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const handleLanguageSelect = (langCode: string) => {
+    // Issue #1: Call setLocale on the i18n context so the UI immediately reflects the change
+    setLocale(langCode)
+    onLanguageChange?.(langCode)
+    onClose()
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Overlay */}
@@ -71,7 +86,7 @@ export default function LanguageModal({
       <div className="relative bg-background-secondary rounded-lg shadow-xl w-full max-w-md mx-4 border border-background-elevated">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-background-elevated">
-          <h2 className="text-2xl font-bold text-text-primary">Langue & Devise</h2>
+          <h2 className="text-2xl font-bold text-text-primary">Langue &amp; Devise</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-background-elevated rounded-md transition-colors"
@@ -136,17 +151,17 @@ export default function LanguageModal({
               {filteredLanguages.map((lang) => (
                 <button
                   key={lang.code}
-                  onClick={() => {
-                    onLanguageChange?.(lang.code)
-                    onClose()
-                  }}
+                  onClick={() => handleLanguageSelect(lang.code)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${
                     currentLanguage === lang.code
                       ? 'bg-accent-primary text-background-primary'
                       : 'bg-background-elevated text-text-primary hover:bg-background-primary'
                   }`}
                 >
-                  <span className="text-2xl">{lang.flag}</span>
+                  {/* Issue #10: Replace flag emoji with styled code badge */}
+                  <span className="w-8 h-8 rounded flex items-center justify-center bg-accent-primary/10 text-accent-primary text-xs font-bold uppercase flex-shrink-0">
+                    {lang.code.slice(0, 2)}
+                  </span>
                   <span className="flex-1 text-left font-medium">{lang.name}</span>
                   {currentLanguage === lang.code && (
                     <span className="text-sm">✓</span>
@@ -186,4 +201,3 @@ export default function LanguageModal({
     </div>
   )
 }
-

@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect, Children } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import GameCard from './GameCard'
+import { useI18n } from '@/lib/i18n'
 
 interface Game {
   id: string
@@ -35,6 +36,7 @@ export default function GameCarousel({
   autoScroll = false,
   children
 }: GameCarouselProps) {
+  const { t } = useI18n()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
@@ -204,7 +206,7 @@ export default function GameCarousel({
                 href={viewAllHref}
                 className="text-text-primary hover:text-text-secondary text-sm font-semibold transition-colors px-3 py-1.5 rounded bg-bg-tertiary hover:bg-bg-primary inline-block"
               >
-                Tous
+                {t('common.viewAll', 'Tous')}
               </a>
             )}
             <div className="flex gap-1">

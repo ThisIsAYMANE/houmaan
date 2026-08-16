@@ -3,9 +3,19 @@ import { registerSchema } from '@/lib/validation'
 import { getUserByEmail, createUser, createSession } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/api-response'
 import { ValidationError, ConflictError } from '@/lib/errors'
+import { queryOne } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
+    // Phase 3: Check registration_enabled platform setting before allowing new users
+    const registrationSetting = await queryOne<{ value: string }>(
+      "SELECT value FROM platform_settings WHERE key = 'registration_enabled'",
+      []
+    ).catch(() => null)
+    if (registrationSetting && registrationSetting.value === 'false') {
+      return errorResponse(new Error('Les inscriptions sont temporairement désactivées.'), 403)
+    }
+
     const body = await request.json()
     const validated = registerSchema.safeParse(body)
 

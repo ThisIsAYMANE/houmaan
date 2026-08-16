@@ -75,10 +75,10 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { currency, language, theme } = body
+    const { currency, language, theme, email, username, password } = body
 
-    // Validate currency if provided
-    const validCurrencies = ['USD', 'EUR', 'GBP', 'EUR', 'BTC', 'ETH']
+    // Validate currency if provided — Issue #2: only EUR and USD
+    const validCurrencies = ['USD', 'EUR']
     if (currency && !validCurrencies.includes(currency)) {
       return errorResponse(new Error(`Invalid currency. Must be one of: ${validCurrencies.join(', ')}`), 400)
     }
@@ -103,17 +103,55 @@ export async function PUT(request: NextRequest) {
     }
 
     if (updates.length === 0) {
-      return errorResponse(new Error('No fields to update'), 400)
+      // Check if we need to update users table fields (email, username, password)
+      // These live in the users table, not user_profiles
     }
 
-    // Add user_id for WHERE clause
-    values.push(session.userId)
+    if (updates.length > 0) {
+      // Add user_id for WHERE clause
+      values.push(session.userId)
+      await query(
+        `UPDATE user_profiles SET ${updates.join(', ')} WHERE user_id = ?`,
+        values
+      )
+    }
 
-    // Update profile
-    await query(
-      `UPDATE user_profiles SET ${updates.join(', ')} WHERE user_id = ?`,
-      values
-    )
+    // Handle users table fields: email, username, password
+    const userUpdates: string[] = []
+    const userValues: any[] = []
+
+    if (email !== undefined) {
+      if (!email.includes('@')) return errorResponse(new Error('Email invalide'), 400)
+      userUpdates.push('email = ?')
+      userValues.push(email)
+    }
+
+    if (username !== undefined) {
+      if (username.length < 3) return errorResponse(new Error("Nom d'utilisateur trop court (min 3 caractères)"), 400)
+      userUpdates.push('username = ?')
+      userValues.push(username)
+    }
+
+    if (password !== undefined) {
+      if (password.length < 8) return errorResponse(new Error('Mot de passe trop court (min 8 caractères)'), 400)
+      // Hash the password before storing — reuse the hash from auth.ts
+      const bcrypt = await import('bcryptjs')
+      const hashedPassword = await bcrypt.hash(password, 12)
+      userUpdates.push('password_hash = ?')
+      userValues.push(hashedPassword)
+    }
+
+    if (userUpdates.length > 0) {
+      userValues.push(session.userId)
+      await query(
+        `UPDATE users SET ${userUpdates.join(', ')} WHERE id = ?`,
+        userValues
+      )
+    }
+
+    if (updates.length === 0 && userUpdates.length === 0) {
+      return errorResponse(new Error('No fields to update'), 400)
+    }
 
     // Also update wallet currency if currency changed
     if (currency) {

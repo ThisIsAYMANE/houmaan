@@ -183,7 +183,12 @@ export default function UsersPage() {
             <tbody className="divide-y divide-gray-700">
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-700/50">
+                  <tr
+                    key={user.id}
+                    className="hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                    onClick={() => router.push(`/admin/users/${user.id}`)}
+                    title="Voir le détail de l'utilisateur"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-white">{user.email}</div>
@@ -245,8 +250,9 @@ export default function UsersPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
-                    Aucun utilisateur trouvé
+                  <td colSpan={5} className="px-6 py-16 text-center">
+                    <p className="text-gray-400 font-medium">Aucun utilisateur trouvé</p>
+                    <p className="text-gray-500 text-sm mt-1">Essayez de modifier votre recherche ou vos filtres</p>
                   </td>
                 </tr>
               )}
